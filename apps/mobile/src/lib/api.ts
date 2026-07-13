@@ -91,6 +91,42 @@ export interface VisitDetailRow {
 
 export type RegionProgress = Record<string, { total: number; visited: number }>;
 
+export interface FeedItem {
+  id: number;
+  handle: string;
+  displayName: string;
+  placeName: string;
+  placeLevel: string;
+  countryName: string | null;
+  createdAt: string;
+}
+
+export interface LeaderRow {
+  id: string;
+  handle: string;
+  displayName: string;
+  countries: number;
+  regions: number;
+  cities: number;
+  isMe: boolean;
+}
+
+export interface PersonRow {
+  id: string;
+  handle: string;
+  displayName: string;
+  countries: number;
+  following: boolean;
+}
+
+export interface CompareResult {
+  otherHandle: string;
+  otherName: string;
+  both: string[];
+  onlyMe: string[];
+  onlyThem: string[];
+}
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -147,4 +183,14 @@ export const api = {
 
   // static admin-1 SVG maps served by the web app
   getAdmin1Map: (iso2: string) => json<Admin1Map>(`/maps/admin1/${iso2}.json`),
+
+  // Phase 3 — social
+  getFeed: () => json<{ feed: FeedItem[] }>("/api/feed"),
+  getLeaderboard: () => json<{ leaderboard: LeaderRow[] }>("/api/leaderboard"),
+  getFollowing: () => json<{ following: PersonRow[] }>("/api/following"),
+  follow: (userId: string) =>
+    json<{ ok: boolean }>("/api/follow", { method: "POST", body: JSON.stringify({ userId }) }),
+  unfollow: (userId: string) =>
+    json<{ ok: boolean }>("/api/follow", { method: "DELETE", body: JSON.stringify({ userId }) }),
+  compare: (userId: string) => json<CompareResult>(`/api/compare/${userId}`),
 };

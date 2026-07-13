@@ -33,3 +33,15 @@ export {
   type CreateVisitInput,
   type VisitRow,
 } from "./queries-depth";
+export {
+  followUser,
+  unfollowUser,
+  listFollowing,
+  getFeed,
+  getLeaderboard,
+  getCompare,
+  type PersonRow,
+  type FeedItem,
+  type LeaderRow,
+  type CompareResult,
+} from "./queries-social";
