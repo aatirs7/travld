@@ -12,8 +12,17 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*"
+  },
   "devDependencies": {
     "@travld/config": "workspace:*",
+    "@types/react": "~19.2.2",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
     "typescript": "^5.7.2"
   }
 }

@@ -1,18 +1,10 @@
 import { percentOfWorld, UN_COUNTRY_DENOMINATOR } from "@travld/core";
-import { colors, radius, spacing, typography } from "@travld/ui";
+import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { PassportMap } from "@/components/PassportMap";
 import { api, type CountryRow } from "@/lib/api";
@@ -26,6 +18,7 @@ export default function MapScreen() {
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   const { theme } = useMapTheme();
+  const L = useLayout();
 
   const placeIdByIso2 = useMemo(() => {
     const m = new Map<string, number>();
@@ -74,20 +67,15 @@ export default function MapScreen() {
     if (!cardRef.current) return;
     try {
       const uri = await captureRef(cardRef, { format: "png", quality: 1 });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      }
+      if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri);
     } catch {
-      /* user cancelled or capture failed */
+      /* cancelled or capture failed */
     }
   }, []);
 
   const pct = percentOfWorld(unCount);
   const visitedNames = useMemo(
-    () =>
-      [...visited]
-        .map((iso) => nameByIso2.get(iso) ?? iso)
-        .sort((a, b) => a.localeCompare(b)),
+    () => [...visited].map((iso) => nameByIso2.get(iso) ?? iso).sort((a, b) => a.localeCompare(b)),
     [visited, nameByIso2],
   );
 
@@ -103,45 +91,69 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <SafeAreaView style={styles.safe} edges={["top"]}>
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={styles.wordmark}>travld</Text>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: L.gutter,
+          paddingTop: L.insets.top + spacing.sm,
+          paddingBottom: L.scrollPadBottom,
+          gap: L.sectionGap,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text variant="hero" style={styles.wordmark}>
+          travld
+        </Text>
 
-          {error && <Text style={styles.error}>{error}</Text>}
+        {error && (
+          <Text variant="body" style={styles.error}>
+            {error}
+          </Text>
+        )}
 
-          {/* Shareable card: map + hero number */}
-          <View ref={cardRef} collapsable={false} style={styles.card}>
-            <PassportMap visited={visited} onToggle={handleToggle} theme={theme} />
-            <View style={styles.hero}>
-              <View style={styles.heroNumberRow}>
-                <Text style={styles.number}>{unCount}</Text>
-                <Text style={styles.pct}>{pct}%</Text>
-              </View>
-              <Text style={styles.label}>
-                COUNTRIES · {unCount} / {UN_COUNTRY_DENOMINATOR}
+        {/* Shareable card: map + hero number */}
+        <View ref={cardRef} collapsable={false} style={styles.card}>
+          <PassportMap visited={visited} onToggle={handleToggle} theme={theme} />
+          <View style={styles.hero}>
+            <View style={styles.heroNumberRow}>
+              <Text variant="hero" style={[styles.number, { fontSize: L.heroNumber }]}>
+                {unCount}
+              </Text>
+              <Text variant="hero" style={styles.pct}>
+                {pct}%
               </Text>
             </View>
+            <Text variant="hero" style={[styles.label, { fontSize: L.heroLabel }]}>
+              COUNTRIES · {unCount} / {UN_COUNTRY_DENOMINATOR}
+            </Text>
           </View>
+        </View>
 
-          <Pressable style={styles.shareBtn} onPress={handleShare}>
-            <Text style={styles.shareText}>Share</Text>
-          </Pressable>
+        <Pressable style={styles.shareBtn} onPress={handleShare}>
+          <Text variant="hero" style={styles.shareText}>
+            Share
+          </Text>
+        </Pressable>
 
-          <Text style={styles.sectionTitle}>My Countries</Text>
-          {visitedNames.length === 0 ? (
-            <Text style={styles.empty}>Tap a country on the map to mark it visited.</Text>
-          ) : (
-            <View style={styles.list}>
-              {visitedNames.map((name) => (
-                <View key={name} style={styles.row}>
-                  <View style={styles.dot} />
-                  <Text style={styles.rowText}>{name}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-      </SafeAreaView>
+        <Text variant="hero" style={styles.sectionTitle}>
+          My Countries
+        </Text>
+        {visitedNames.length === 0 ? (
+          <Text variant="body" style={styles.empty}>
+            Tap a country on the map to mark it visited.
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {visitedNames.map((name) => (
+              <View key={name} style={[styles.row, { minHeight: L.listRow }]}>
+                <View style={styles.dot} />
+                <Text variant="body" numberOfLines={1} ellipsizeMode="tail" style={styles.rowText}>
+                  {name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -149,28 +161,20 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: "center", justifyContent: "center" },
-  safe: { flex: 1 },
-  scroll: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl * 2 },
   wordmark: {
     color: colors.mint,
     fontSize: 22,
     fontWeight: "200",
     letterSpacing: 6,
     textAlign: "center",
-    marginVertical: spacing.sm,
   },
   error: { color: "#FF6B6B", textAlign: "center" },
   card: { backgroundColor: colors.bg, gap: spacing.md },
   hero: { alignItems: "center", gap: spacing.xs },
   heroNumberRow: { flexDirection: "row", alignItems: "flex-start" },
-  number: {
-    fontSize: typography.hero.fontSize,
-    fontWeight: typography.hero.fontWeight,
-    color: colors.mint,
-    letterSpacing: typography.hero.letterSpacing,
-  },
+  number: { fontWeight: "700", color: colors.mint, letterSpacing: -1 },
   pct: { fontSize: 20, color: colors.mint, marginTop: spacing.sm, marginLeft: spacing.xs },
-  label: { ...typography.label, textTransform: "uppercase" },
+  label: { color: colors.textDim, letterSpacing: 0.5, textTransform: "uppercase" },
   shareBtn: {
     alignSelf: "center",
     paddingHorizontal: spacing.lg,
@@ -180,10 +184,10 @@ const styles = StyleSheet.create({
     borderColor: colors.mint,
   },
   shareText: { color: colors.mint, fontWeight: "600" },
-  sectionTitle: { ...typography.title, marginTop: spacing.sm },
+  sectionTitle: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
   empty: { color: colors.textDim },
   list: { gap: spacing.xs },
-  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.xs },
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
-  rowText: { color: colors.textPrimary, fontSize: 16 },
+  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
 });

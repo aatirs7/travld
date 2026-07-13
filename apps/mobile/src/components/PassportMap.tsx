@@ -37,8 +37,13 @@ export function PassportMap({ visited, onToggle, theme = defaultMapTheme, style 
   );
 
   return (
-    <View style={[{ aspectRatio: WORLD.width / WORLD.height, width: "100%" }, style]}>
-      <Svg width="100%" height="100%" viewBox={`0 0 ${WORLD.width} ${WORLD.height}`}>
+    <View style={[{ width: "100%" }, style]}>
+      <Svg
+        width="100%"
+        viewBox={`0 0 ${WORLD.width} ${WORLD.height}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ aspectRatio: WORLD.width / WORLD.height }}
+      >
         <Rect x={0} y={0} width={WORLD.width} height={WORLD.height} fill={theme.water} />
         {paths.map((c) => (
           <Path
