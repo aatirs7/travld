@@ -18,6 +18,10 @@ interface Props {
   onToggle?: (iso2: string) => void;
   /** User-customizable palette. */
   theme?: MapTheme;
+  /** "world" = binary visited fill; "heatmap" = opacity by admin-1 completion. */
+  variant?: "world" | "heatmap";
+  /** iso2 → { total, visited } admin-1 counts, for the heatmap variant. */
+  regionProgress?: Record<string, { total: number; visited: number }>;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -26,14 +30,33 @@ interface Props {
  * on black, no labels, no tiles. Paths are pre-projected at build time (see
  * prebake-maps), so nothing computes geometry on device: instant and offline.
  */
-export function PassportMap({ visited, onToggle, theme = defaultMapTheme, style }: Props) {
+export function PassportMap({
+  visited,
+  onToggle,
+  theme = defaultMapTheme,
+  variant = "world",
+  regionProgress,
+  style,
+}: Props) {
   const paths = useMemo(
     () =>
-      WORLD.countries.map((c) => ({
-        ...c,
-        isVisited: visited.has(c.iso),
-      })),
-    [visited],
+      WORLD.countries.map((c) => {
+        const isVisited = visited.has(c.iso);
+        let fill = isVisited ? theme.visited : theme.land;
+        let fillOpacity = 1;
+        if (variant === "heatmap") {
+          const p = regionProgress?.[c.iso];
+          if (p && p.total > 0 && p.visited > 0) {
+            fill = theme.visited;
+            // 0.25..1 opacity scaled by admin-1 completion — signals "deeper than Been"
+            fillOpacity = 0.25 + 0.75 * (p.visited / p.total);
+          } else {
+            fill = theme.land;
+          }
+        }
+        return { ...c, isVisited, fill, fillOpacity };
+      }),
+    [visited, variant, regionProgress, theme],
   );
 
   return (
@@ -49,7 +72,8 @@ export function PassportMap({ visited, onToggle, theme = defaultMapTheme, style 
           <Path
             key={c.iso}
             d={c.d}
-            fill={c.isVisited ? theme.visited : theme.land}
+            fill={c.fill}
+            fillOpacity={c.fillOpacity}
             stroke={theme.water}
             strokeWidth={0.3}
             onPress={onToggle ? () => onToggle(c.iso) : undefined}

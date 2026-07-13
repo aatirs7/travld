@@ -8,8 +8,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "reac
 import { captureRef } from "react-native-view-shot";
 import { CountryDetailSheet } from "@/components/CountryDetailSheet";
 import { PassportMap } from "@/components/PassportMap";
-import { api, type CountryRow } from "@/lib/api";
+import { api, type CountryRow, type RegionProgress } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
+
+type MapVariant = "world" | "heatmap";
 
 export default function MapScreen() {
   const [visited, setVisited] = useState<Set<string>>(new Set());
@@ -19,8 +21,22 @@ export default function MapScreen() {
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   const [selectedIso2, setSelectedIso2] = useState<string | null>(null);
+  const [mapVariant, setMapVariant] = useState<MapVariant>("world");
+  const [regionProgress, setRegionProgress] = useState<RegionProgress | null>(null);
   const { theme } = useMapTheme();
   const L = useLayout();
+
+  const showVariant = useCallback(async (v: MapVariant) => {
+    setMapVariant(v);
+    if (v === "heatmap" && !regionProgress) {
+      try {
+        const { progress } = await api.getRegionProgress();
+        setRegionProgress(progress);
+      } catch {
+        /* keep world */
+      }
+    }
+  }, [regionProgress]);
 
   const refreshVisited = useCallback(async () => {
     const v = await api.getVisited();
@@ -121,9 +137,30 @@ export default function MapScreen() {
           </Text>
         )}
 
+        {/* map variant switcher (outside the shareable card) */}
+        <View style={styles.variants}>
+          {(["world", "heatmap"] as const).map((v) => (
+            <Pressable
+              key={v}
+              onPress={() => showVariant(v)}
+              style={[styles.variantChip, mapVariant === v && styles.variantChipActive]}
+            >
+              <Text variant="body" style={[styles.variantText, mapVariant === v && styles.variantTextActive]}>
+                {v === "world" ? "World" : "Regions"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         {/* Shareable card: map + hero number */}
         <View ref={cardRef} collapsable={false} style={styles.card}>
-          <PassportMap visited={visited} onToggle={handleToggle} theme={theme} />
+          <PassportMap
+            visited={visited}
+            onToggle={mapVariant === "world" ? handleToggle : undefined}
+            theme={theme}
+            variant={mapVariant}
+            regionProgress={regionProgress ?? undefined}
+          />
           <View style={styles.hero}>
             <View style={styles.heroNumberRow}>
               <Text variant="hero" style={[styles.number, { fontSize: L.heroNumber }]}>
@@ -215,4 +252,14 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
   rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
   chevron: { color: colors.textDim, fontSize: 22 },
+  variants: { flexDirection: "row", gap: spacing.sm, alignSelf: "center" },
+  variantChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+  },
+  variantChipActive: { backgroundColor: colors.surfaceAlt },
+  variantText: { color: colors.textDim, fontSize: 14 },
+  variantTextActive: { color: colors.textPrimary, fontWeight: "600" },
 });
