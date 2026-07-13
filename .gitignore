@@ -1,0 +1,42 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# turbo
+.turbo/
+
+# build outputs
+dist/
+build/
+.next/
+out/
+
+# expo
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+*.orig.*
+web-build/
+expo-env.d.ts
+
+# seed source data (downloaded, not committed) — keep the README
+packages/db/data/*
+!packages/db/data/README.md
+
+# generated map assets (produced by prebake)
+apps/mobile/assets/maps/
+apps/web/public/maps/
+
+# misc
+.DS_Store
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+coverage/
