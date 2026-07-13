@@ -6,6 +6,8 @@ export {
   listCountries,
   getVisitedCountries,
   toggleCountryVisit,
+  getMapTheme,
+  setMapTheme,
   type CountryRow,
   type VisitedSummary,
   type ToggleResult,

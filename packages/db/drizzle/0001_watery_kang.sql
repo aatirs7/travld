@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "map_theme" jsonb;

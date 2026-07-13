@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 import { PassportMap } from "@/components/PassportMap";
 import { api, type CountryRow } from "@/lib/api";
+import { useMapTheme } from "@/lib/map-theme-context";
 
 export default function MapScreen() {
   const [visited, setVisited] = useState<Set<string>>(new Set());
@@ -24,6 +25,7 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
+  const { theme } = useMapTheme();
 
   const placeIdByIso2 = useMemo(() => {
     const m = new Map<string, number>();
@@ -109,7 +111,7 @@ export default function MapScreen() {
 
           {/* Shareable card: map + hero number */}
           <View ref={cardRef} collapsable={false} style={styles.card}>
-            <PassportMap visited={visited} onToggle={handleToggle} />
+            <PassportMap visited={visited} onToggle={handleToggle} theme={theme} />
             <View style={styles.hero}>
               <View style={styles.heroNumberRow}>
                 <Text style={styles.number}>{unCount}</Text>

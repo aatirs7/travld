@@ -109,6 +109,8 @@ export function citiesVisited(
   return placesVisitedAtLevel(visits, "city", placesById, opts);
 }
 
+export * from "./map-theme";
+
 export function percentOfWorld(
   countryCount: number,
   denominator: number = UN_COUNTRY_DENOMINATOR,

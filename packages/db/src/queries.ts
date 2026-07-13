@@ -1,7 +1,8 @@
+import { defaultMapTheme, normalizeMapTheme, type MapTheme } from "@travld/core";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "./client";
 import { createPool } from "./pool";
-import { places, visits } from "./schema";
+import { places, users, visits } from "./schema";
 import { recomputeUserPlaceStats } from "./stats";
 
 // ─── reads (neon-http) ───────────────────────────────────────────────────────
@@ -54,6 +55,23 @@ export async function getVisitedCountries(userId: string): Promise<VisitedSummar
     if (r.is_un_member) unCount++;
   }
   return { visitedIso2, unCount, totalCount: visitedIso2.length };
+}
+
+/** A user's map palette, falling back to the brand default when unset. */
+export async function getMapTheme(userId: string): Promise<MapTheme> {
+  const rows = await db
+    .select({ mapTheme: users.mapTheme })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return normalizeMapTheme(rows[0]?.mapTheme ?? defaultMapTheme);
+}
+
+/** Persist a validated map palette for a user. Returns the normalized theme. */
+export async function setMapTheme(userId: string, theme: unknown): Promise<MapTheme> {
+  const normalized = normalizeMapTheme(theme);
+  await db.update(users).set({ mapTheme: normalized }).where(eq(users.id, userId));
+  return normalized;
 }
 
 // ─── writes (neon-serverless WS pool, transactional recompute) ────────────────

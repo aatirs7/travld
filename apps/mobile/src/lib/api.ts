@@ -1,3 +1,5 @@
+import type { MapTheme } from "@travld/core";
+
 // Thin client for the travld API (apps/web). No auth yet — the server runs
 // everything as the dev user until the auth phase.
 //
@@ -41,5 +43,11 @@ export const api = {
     json<ToggleResult>("/api/visits/toggle-country", {
       method: "POST",
       body: JSON.stringify({ placeId }),
+    }),
+  getTheme: () => json<{ theme: MapTheme }>("/api/me/theme"),
+  setTheme: (theme: MapTheme) =>
+    json<{ theme: MapTheme }>("/api/me/theme", {
+      method: "PATCH",
+      body: JSON.stringify({ theme }),
     }),
 };
