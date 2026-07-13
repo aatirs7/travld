@@ -7,10 +7,19 @@
     "icon": "./assets/images/icon.png",
     "scheme": "travld",
     "userInterfaceStyle": "dark",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.travld.app"
     },
     "android": {
+      "package": "com.travld.app",
       "adaptiveIcon": {
         "backgroundColor": "#00E08F",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
