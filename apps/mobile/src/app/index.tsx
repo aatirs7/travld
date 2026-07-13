@@ -6,6 +6,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
+import { CountryDetailSheet } from "@/components/CountryDetailSheet";
 import { PassportMap } from "@/components/PassportMap";
 import { api, type CountryRow } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
@@ -17,8 +18,15 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
+  const [selectedIso2, setSelectedIso2] = useState<string | null>(null);
   const { theme } = useMapTheme();
   const L = useLayout();
+
+  const refreshVisited = useCallback(async () => {
+    const v = await api.getVisited();
+    setVisited(new Set(v.visitedIso2));
+    setUnCount(v.unCount);
+  }, []);
 
   const placeIdByIso2 = useMemo(() => {
     const m = new Map<string, number>();
@@ -74,8 +82,11 @@ export default function MapScreen() {
   }, []);
 
   const pct = percentOfWorld(unCount);
-  const visitedNames = useMemo(
-    () => [...visited].map((iso) => nameByIso2.get(iso) ?? iso).sort((a, b) => a.localeCompare(b)),
+  const visitedList = useMemo(
+    () =>
+      [...visited]
+        .map((iso) => ({ iso, name: nameByIso2.get(iso) ?? iso }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     [visited, nameByIso2],
   );
 
@@ -137,23 +148,36 @@ export default function MapScreen() {
         <Text variant="hero" style={styles.sectionTitle}>
           My Countries
         </Text>
-        {visitedNames.length === 0 ? (
+        {visitedList.length === 0 ? (
           <Text variant="body" style={styles.empty}>
             Tap a country on the map to mark it visited.
           </Text>
         ) : (
           <View style={styles.list}>
-            {visitedNames.map((name) => (
-              <View key={name} style={[styles.row, { minHeight: L.listRow }]}>
+            {visitedList.map(({ iso, name }) => (
+              <Pressable
+                key={iso}
+                onPress={() => setSelectedIso2(iso)}
+                style={[styles.row, { minHeight: L.listRow }]}
+              >
                 <View style={styles.dot} />
                 <Text variant="body" numberOfLines={1} ellipsizeMode="tail" style={styles.rowText}>
                   {name}
                 </Text>
-              </View>
+                <Text variant="body" style={styles.chevron}>
+                  ›
+                </Text>
+              </Pressable>
             ))}
           </View>
         )}
       </ScrollView>
+
+      <CountryDetailSheet
+        iso2={selectedIso2}
+        onClose={() => setSelectedIso2(null)}
+        onChanged={refreshVisited}
+      />
     </View>
   );
 }
@@ -190,4 +214,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
   rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
+  chevron: { color: colors.textDim, fontSize: 22 },
 });

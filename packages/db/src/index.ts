@@ -12,3 +12,19 @@ export {
   type VisitedSummary,
   type ToggleResult,
 } from "./queries";
+export {
+  searchPlaces,
+  getCountryDetail,
+  getPlaceCities,
+  getCountryCities,
+  getCountryVisits,
+  getRegionProgress,
+  createVisit,
+  togglePlaceVisit,
+  type SearchResult,
+  type CountryDetail,
+  type RegionRow,
+  type RegionProgress,
+  type CreateVisitInput,
+  type VisitRow,
+} from "./queries-depth";

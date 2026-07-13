@@ -117,6 +117,51 @@ export async function getPlaceCities(
   }));
 }
 
+/** All cities in a country (by stored country_code), largest first, visited flags. */
+export async function getCountryCities(
+  userId: string,
+  iso2: string,
+  limit = 100,
+): Promise<{ id: number; name: string; population: number | null; visited: boolean }[]> {
+  const rows = await db.execute(sql`
+    SELECT c.id, c.name, c.population, (s.place_id IS NOT NULL) AS visited
+    FROM places c
+    LEFT JOIN user_place_stats s ON s.place_id = c.id AND s.user_id = ${userId}
+    WHERE c.level = 'city' AND c.country_code = ${iso2}
+    ORDER BY c.population DESC NULLS LAST
+    LIMIT ${limit}
+  `);
+  return (rows.rows as any[]).map((r) => ({
+    id: Number(r.id),
+    name: r.name,
+    population: r.population != null ? Number(r.population) : null,
+    visited: r.visited === true,
+  }));
+}
+
+export interface VisitRow {
+  id: number;
+  placeName: string;
+  placeLevel: "continent" | "country" | "region" | "city";
+  purpose: string;
+  arrivedAt: string | null;
+  note: string | null;
+}
+
+/** The user's visits within a country (any level whose country_code matches, or the country itself). */
+export async function getCountryVisits(userId: string, iso2: string): Promise<VisitRow[]> {
+  const rows = await db.execute(sql`
+    SELECT v.id, p.name AS "placeName", p.level AS "placeLevel",
+           v.purpose, v.arrived_at AS "arrivedAt", v.note
+    FROM visits v
+    JOIN places p ON p.id = v.place_id
+    WHERE v.user_id = ${userId}
+      AND (p.country_code = ${iso2} OR (p.level = 'country' AND p.iso2 = ${iso2}))
+    ORDER BY v.created_at DESC
+  `);
+  return rows.rows as unknown as VisitRow[];
+}
+
 // ─── region heatmap (admin-1s visited per country) ────────────────────────────
 
 export interface RegionProgress {
