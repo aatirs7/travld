@@ -74,6 +74,39 @@ export async function setMapTheme(userId: string, theme: unknown): Promise<MapTh
   return normalized;
 }
 
+export interface UserSettings {
+  includeTransit: boolean;
+}
+
+export async function getSettings(userId: string): Promise<UserSettings> {
+  const rows = await db
+    .select({ includeTransit: users.includeTransit })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return { includeTransit: rows[0]?.includeTransit ?? false };
+}
+
+/** Persist settings; recompute stats when the layover rule changes the counts. */
+export async function setSettings(
+  userId: string,
+  input: Partial<UserSettings>,
+): Promise<UserSettings> {
+  if (typeof input.includeTransit === "boolean") {
+    const { db: wdb, pool } = await createPool();
+    try {
+      await wdb
+        .update(users)
+        .set({ includeTransit: input.includeTransit })
+        .where(eq(users.id, userId));
+      await recomputeUserPlaceStats(wdb, userId); // counts depend on this flag
+    } finally {
+      await pool.end();
+    }
+  }
+  return getSettings(userId);
+}
+
 // ─── writes (neon-serverless WS pool, transactional recompute) ────────────────
 
 export interface ToggleResult {

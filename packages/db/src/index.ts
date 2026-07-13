@@ -8,9 +8,12 @@ export {
   toggleCountryVisit,
   getMapTheme,
   setMapTheme,
+  getSettings,
+  setSettings,
   type CountryRow,
   type VisitedSummary,
   type ToggleResult,
+  type UserSettings,
 } from "./queries";
 export {
   searchPlaces,

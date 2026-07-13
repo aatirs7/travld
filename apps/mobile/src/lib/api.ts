@@ -127,6 +127,12 @@ export const api = {
     note?: string | null;
   }) => json<VisitedSummary>("/api/visits", { method: "POST", body: JSON.stringify(input) }),
   getRegionProgress: () => json<{ progress: RegionProgress }>("/api/me/region-progress"),
+  getSettings: () => json<{ settings: { includeTransit: boolean } }>("/api/me/settings"),
+  setSettings: (s: { includeTransit: boolean }) =>
+    json<{ settings: { includeTransit: boolean } }>("/api/me/settings", {
+      method: "PATCH",
+      body: JSON.stringify(s),
+    }),
 
   // static admin-1 SVG maps served by the web app
   getAdmin1Map: (iso2: string) => json<Admin1Map>(`/maps/admin1/${iso2}.json`),

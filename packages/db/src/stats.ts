@@ -26,7 +26,10 @@ export async function recomputeUserPlaceStats(
                COALESCE(v.arrived_at, v.created_at) AS ts
         FROM visits v
         JOIN places p ON p.id = v.place_id
+        JOIN users u ON u.id = v.user_id
         WHERE v.user_id = ${userId}
+          -- layover rule: exclude transit/layover unless the user opted in
+          AND (u.include_transit = true OR v.purpose NOT IN ('transit', 'layover'))
         UNION ALL
         SELECT p.id AS place_id, p.parent_id AS parent_id, vp.ts AS ts
         FROM visit_places vp

@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "include_transit" boolean DEFAULT false NOT NULL;

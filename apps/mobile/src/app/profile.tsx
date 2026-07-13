@@ -2,8 +2,10 @@ import { mapThemePresets, type MapTheme } from "@travld/core";
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { PassportMap } from "@/components/PassportMap";
+import { api } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
 
 const VISITED_SWATCHES = [
@@ -16,10 +18,21 @@ const PREVIEW = new Set(["US", "BR", "PK", "JP", "AU", "ZA", "FR", "EG"]);
 export default function ProfileScreen() {
   const { theme, setTheme } = useMapTheme();
   const L = useLayout();
+  const [includeTransit, setIncludeTransit] = useState(false);
+
+  useEffect(() => {
+    api.getSettings().then((r) => setIncludeTransit(r.settings.includeTransit)).catch(() => {});
+  }, []);
 
   const apply = (next: MapTheme) => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     void setTheme(next);
+  };
+
+  const toggleTransit = (value: boolean) => {
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIncludeTransit(value); // optimistic
+    api.setSettings({ includeTransit: value }).catch(() => setIncludeTransit(!value));
   };
 
   return (
@@ -85,6 +98,26 @@ export default function ProfileScreen() {
         <Text variant="body" style={styles.hint}>
           Changes save automatically and sync to your maps.
         </Text>
+
+        <Text variant="hero" style={styles.section}>
+          Counting
+        </Text>
+        <View style={styles.settingRow}>
+          <View style={styles.settingMain}>
+            <Text variant="body" style={styles.settingTitle}>
+              Count layovers & transits
+            </Text>
+            <Text variant="body" style={styles.hint}>
+              Off by default — a country you only passed through in transit doesn’t count.
+            </Text>
+          </View>
+          <Switch
+            value={includeTransit}
+            onValueChange={toggleTransit}
+            trackColor={{ true: theme.visited, false: colors.grey }}
+            thumbColor={colors.textPrimary}
+          />
+        </View>
       </ScrollView>
     </View>
   );
@@ -120,5 +153,8 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   swatchActive: { borderColor: colors.textPrimary },
-  hint: { color: colors.textDim },
+  hint: { color: colors.textDim, fontSize: 13 },
+  settingRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  settingMain: { flex: 1, gap: spacing.xs },
+  settingTitle: { color: colors.textPrimary, fontSize: 16 },
 });

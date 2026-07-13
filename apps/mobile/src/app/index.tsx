@@ -1,6 +1,7 @@
 import { percentOfWorld, UN_COUNTRY_DENOMINATOR } from "@travld/core";
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
 import * as Haptics from "expo-haptics";
+import { useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,6 +71,13 @@ export default function MapScreen() {
       }
     })();
   }, []);
+
+  // refresh derived counts when returning to the tab (e.g. after a layover-rule change)
+  useFocusEffect(
+    useCallback(() => {
+      if (!loading) void refreshVisited();
+    }, [loading, refreshVisited]),
+  );
 
   const handleToggle = useCallback(
     async (iso2: string) => {

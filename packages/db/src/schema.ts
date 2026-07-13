@@ -105,6 +105,8 @@ export const users = pgTable("users", {
   avatarKey: text("avatar_key"),
   homePlaceId: integer("home_place_id").references(() => places.id),
   isPrivate: boolean("is_private").notNull().default(false),
+  // layover rule: transit/layover visits excluded from counts unless true
+  includeTransit: boolean("include_transit").notNull().default(false),
   // user-customizable passport-map palette (see @travld/ui MapTheme); null = default
   mapTheme: jsonb("map_theme").$type<{
     visited: string;
