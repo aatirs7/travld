@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "dependencies": {
     "@expo/ui": "~57.0.4",
+    "@maplibre/maplibre-react-native": "^11.3.6",
     "@travld/core": "workspace:*",
     "@travld/ui": "workspace:*",
     "expo": "~57.0.4",

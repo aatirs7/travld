@@ -13,6 +13,8 @@ export interface SearchResult {
   displayType: string | null;
   countryName: string | null;
   countryIso2: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 /** Build a safe prefix tsquery: last term gets `:*` for typeahead. */
@@ -27,6 +29,7 @@ export async function searchPlaces(q: string, limit = 20): Promise<SearchResult[
   if (!tsq) return [];
   const rows = await db.execute(sql`
     SELECT p.id, p.name, p.level, p.display_type AS "displayType",
+           p.lat, p.lng,
            cc.name AS "countryName", COALESCE(p.country_code, p.iso2) AS "countryIso2"
     FROM places p
     LEFT JOIN places cc
@@ -185,6 +188,33 @@ export async function getRegionProgress(userId: string): Promise<RegionProgress>
     out[r.iso2] = { total: Number(r.total), visited: Number(r.visited) };
   }
   return out;
+}
+
+export interface Pin {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  level: "country" | "region" | "city";
+}
+
+/** Visited places that have coordinates, for the Explore map pins. */
+export async function getVisitedPins(userId: string): Promise<Pin[]> {
+  const rows = await db.execute(sql`
+    SELECT p.id, p.name, p.lat, p.lng, p.level
+    FROM user_place_stats s
+    JOIN places p ON p.id = s.place_id
+    WHERE s.user_id = ${userId}
+      AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+      AND p.level IN ('city', 'region', 'country')
+  `);
+  return (rows.rows as any[]).map((r) => ({
+    id: Number(r.id),
+    name: r.name,
+    lat: Number(r.lat),
+    lng: Number(r.lng),
+    level: r.level,
+  }));
 }
 
 // ─── general visit write (any place level) ────────────────────────────────────

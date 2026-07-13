@@ -36,6 +36,8 @@ export interface SearchResult {
   displayType: string | null;
   countryName: string | null;
   countryIso2: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface RegionRow {
@@ -68,6 +70,14 @@ export interface Admin1Map {
   width: number;
   height: number;
   regions: { code: string | null; name: string | null; d: string }[];
+}
+
+export interface Pin {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  level: "country" | "region" | "city";
 }
 
 export interface VisitDetailRow {
@@ -127,6 +137,7 @@ export const api = {
     note?: string | null;
   }) => json<VisitedSummary>("/api/visits", { method: "POST", body: JSON.stringify(input) }),
   getRegionProgress: () => json<{ progress: RegionProgress }>("/api/me/region-progress"),
+  getPins: () => json<{ pins: Pin[] }>("/api/me/pins"),
   getSettings: () => json<{ settings: { includeTransit: boolean } }>("/api/me/settings"),
   setSettings: (s: { includeTransit: boolean }) =>
     json<{ settings: { includeTransit: boolean } }>("/api/me/settings", {
