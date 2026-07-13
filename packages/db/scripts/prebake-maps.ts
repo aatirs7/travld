@@ -1,4 +1,4 @@
-import "./_env.js";
+import "./_env";
 import { geoMercator, geoPath } from "d3-geo";
 import { geoRobinson } from "d3-geo-projection";
 import { mkdir, readFile, writeFile } from "node:fs/promises";

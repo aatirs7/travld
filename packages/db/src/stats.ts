@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import type { createPool } from "./pool.js";
+import type { createPool } from "./pool";
 
 type WsDatabase = Awaited<ReturnType<typeof createPool>>["db"];
 

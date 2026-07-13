@@ -1,6 +1,6 @@
-import "./_env.js";
+import "./_env";
 import { sql } from "drizzle-orm";
-import { createPool } from "../src/pool.js";
+import { createPool } from "../src/pool";
 
 async function main() {
   const { db, pool } = await createPool();

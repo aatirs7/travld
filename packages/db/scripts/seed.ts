@@ -1,12 +1,12 @@
-import "./_env.js";
+import "./_env";
 import { geoBounds, geoCentroid } from "d3-geo";
 import { eq, sql } from "drizzle-orm";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPool } from "../src/pool.js";
-import { places, users, visits, type NewPlace } from "../src/schema.js";
-import { recomputeUserPlaceStats } from "../src/stats.js";
+import { createPool } from "../src/pool";
+import { places, users, visits, type NewPlace } from "../src/schema";
+import { recomputeUserPlaceStats } from "../src/stats";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DATA = resolve(here, "../data");

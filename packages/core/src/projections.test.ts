@@ -7,7 +7,7 @@ import {
   placeAtLevel,
   type PlaceNode,
   type VisitLike,
-} from "./index.js";
+} from "./index";
 
 // A tiny hierarchy: Asia > Pakistan > Sindh > Karachi ; Asia > Japan > Tokyo-region > Tokyo
 const nodes: PlaceNode[] = [

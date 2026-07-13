@@ -29,7 +29,8 @@ packages/db/data/*
 !packages/db/data/README.md
 
 # generated map assets (produced by prebake)
-apps/mobile/assets/maps/
+# mobile bundle assets (world + bundled admin-1) are committed so the app is
+# self-contained; the full per-country set served by web is regenerated.
 apps/web/public/maps/
 
 # misc

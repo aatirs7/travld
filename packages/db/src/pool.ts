@@ -1,6 +1,6 @@
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import { drizzle as drizzleWs } from "drizzle-orm/neon-serverless";
-import * as schema from "./schema.js";
+import * as schema from "./schema";
 
 /**
  * WebSocket pool driver. Use for anything needing a real interactive

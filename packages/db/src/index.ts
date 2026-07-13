@@ -1,4 +1,12 @@
-export * from "./schema.js";
-export { db, schema, type Database } from "./client.js";
-export { createPool } from "./pool.js";
-export { recomputeUserPlaceStats } from "./stats.js";
+export * from "./schema";
+export { db, schema, type Database } from "./client";
+export { createPool } from "./pool";
+export { recomputeUserPlaceStats } from "./stats";
+export {
+  listCountries,
+  getVisitedCountries,
+  toggleCountryVisit,
+  type CountryRow,
+  type VisitedSummary,
+  type ToggleResult,
+} from "./queries";
