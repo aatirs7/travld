@@ -193,4 +193,15 @@ export const api = {
   unfollow: (userId: string) =>
     json<{ ok: boolean }>("/api/follow", { method: "DELETE", body: JSON.stringify({ userId }) }),
   compare: (userId: string) => json<CompareResult>(`/api/compare/${userId}`),
+
+  // Phase 4 — visualize
+  getStats: () => json<VisualizeStats>("/api/me/stats"),
 };
+
+export interface VisualizeStats {
+  totals: { countries: number; regions: number; cities: number };
+  continents: { continent: string; countries: number }[];
+  purposes: { purpose: string; count: number }[];
+  timeline: { year: number; count: number }[];
+  distanceKm: number;
+}

@@ -28,6 +28,15 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="visualize">
+        <NativeTabs.Trigger.Label>Stats</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf="chart.bar.fill"
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="friends">
         <NativeTabs.Trigger.Label>Friends</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

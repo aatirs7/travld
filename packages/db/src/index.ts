@@ -45,3 +45,4 @@ export {
   type LeaderRow,
   type CompareResult,
 } from "./queries-social";
+export { getVisualizeStats, type VisualizeStats } from "./queries-viz";
