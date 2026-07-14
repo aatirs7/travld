@@ -124,7 +124,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
-  section: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
+  section: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
   preview: { borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.surface },
   label: { fontSize: 13, color: colors.textDim, letterSpacing: 0.5, textTransform: "uppercase" },
   presetRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   swatchActive: { borderColor: colors.textPrimary },
-  hint: { color: colors.textDim, fontSize: 13 },
+  hint: { color: colors.textDim, fontSize: 13, textAlign: "center" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   settingMain: { flex: 1, gap: spacing.xs },
   settingTitle: { color: colors.textPrimary, fontSize: 16 },

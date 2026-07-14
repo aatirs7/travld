@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   retry: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint },
   retryText: { color: colors.mint, fontWeight: "600" },
   h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
-  section: { fontSize: 20, fontWeight: "700", color: colors.textPrimary },
+  section: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
   tiles: { flexDirection: "row", gap: spacing.sm },
   tile: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, alignItems: "center", gap: spacing.xs },
   tileValue: { color: colors.mint, fontSize: 28, fontWeight: "700" },

@@ -3,7 +3,8 @@ import { NativeTabs } from 'expo-router/unstable-native-tabs';
 export default function AppTabs() {
   return (
     <NativeTabs
-      backgroundColor="#000000"
+      backgroundColor="rgba(0,0,0,0.92)"
+      blurEffect="systemChromeMaterialDark"
       indicatorColor="#1E1E1E"
       labelStyle={{ selected: { color: '#00E08F' } }}>
       <NativeTabs.Trigger name="index">

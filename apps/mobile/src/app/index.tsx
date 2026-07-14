@@ -7,6 +7,7 @@ import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,11 +18,18 @@ import {
 import Svg, { Circle } from "react-native-svg";
 import { captureRef } from "react-native-view-shot";
 import { AddVisitSheet } from "@/components/AddVisitSheet";
-import { CountryDetailSheet } from "@/components/CountryDetailSheet";
+import { CountryMap } from "@/components/CountryMap";
 import { ExploreMapModal } from "@/components/ExploreMapModal";
 import { HowToModal } from "@/components/HowToModal";
 import { PassportMap } from "@/components/PassportMap";
-import { api, type CountryRow, type RegionProgress } from "@/lib/api";
+import {
+  api,
+  normalizeName,
+  type Admin1Map,
+  type CountryDetail,
+  type CountryRow,
+  type RegionProgress,
+} from "@/lib/api";
 import { getFlag, setFlag } from "@/lib/local-flags";
 import { useMapTheme } from "@/lib/map-theme-context";
 
@@ -32,12 +40,15 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
-  const [selectedIso2, setSelectedIso2] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [page, setPage] = useState(0); // 0 = World, 1 = Regions
+  const [page, setPage] = useState(0);
   const [regionProgress, setRegionProgress] = useState<RegionProgress | null>(null);
+  // country mode: when set, the home map becomes that country's states map
+  const [country, setCountry] = useState<{ iso2: string; name: string } | null>(null);
+  const [cDetail, setCDetail] = useState<CountryDetail | null>(null);
+  const [cAdmin1, setCAdmin1] = useState<Admin1Map | null>(null);
   const { theme } = useMapTheme();
   const L = useLayout();
 
@@ -54,14 +65,14 @@ export default function MapScreen() {
     }
   }, []);
 
-  const placeIdByIso2 = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const c of countries) if (c.iso2) m.set(c.iso2, c.id);
-    return m;
-  }, [countries]);
   const nameByIso2 = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of countries) if (c.iso2) m.set(c.iso2, c.name);
+    return m;
+  }, [countries]);
+  const placeIdByIso2 = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of countries) if (c.iso2) m.set(c.iso2, c.id);
     return m;
   }, [countries]);
 
@@ -113,6 +124,39 @@ export default function MapScreen() {
     [placeIdByIso2],
   );
 
+  // ── country mode ──
+  const openCountry = useCallback(async (iso2: string, name: string) => {
+    setCountry({ iso2, name });
+    setCDetail(null);
+    setCAdmin1(null);
+    const [d, m] = await Promise.all([
+      api.getCountry(iso2),
+      api.getAdmin1Map(iso2).catch(() => null),
+    ]);
+    setCDetail(d);
+    setCAdmin1(m);
+  }, []);
+
+  const cVisitedNames = useMemo(
+    () => new Set((cDetail?.regions ?? []).filter((r) => r.visited).map((r) => normalizeName(r.name))),
+    [cDetail],
+  );
+  const cIdByName = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const r of cDetail?.regions ?? []) m.set(normalizeName(r.name), r.id);
+    return m;
+  }, [cDetail]);
+
+  const toggleRegion = useCallback(
+    async (regionId: number) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await api.togglePlace(regionId);
+      if (country) api.getCountry(country.iso2).then(setCDetail).catch(() => {});
+      void refreshVisited();
+    },
+    [country, refreshVisited],
+  );
+
   const handleShare = useCallback(async () => {
     if (!cardRef.current) return;
     try {
@@ -131,139 +175,130 @@ export default function MapScreen() {
         .sort((a, b) => a.name.localeCompare(b.name)),
     [visited, nameByIso2],
   );
+  const regionLabel = cDetail?.regions[0]?.displayType ?? "Regions";
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       <ScrollView
-        contentContainerStyle={{
-          paddingTop: L.insets.top + spacing.sm,
-          paddingBottom: L.scrollPadBottom,
-          gap: L.sectionGap,
-        }}
+        contentContainerStyle={{ paddingTop: L.insets.top + spacing.sm, paddingBottom: L.scrollPadBottom, gap: L.sectionGap }}
         showsVerticalScrollIndicator={false}
       >
-        {/* header */}
-        <View style={[styles.header, { paddingHorizontal: L.gutter }]}>
-          <View style={styles.headerSide}>
-            <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.headerBtn}>
-              <Text variant="hero" style={styles.headerIcon}>◎</Text>
+        {/* action row */}
+        <View style={[styles.actionRow, { paddingHorizontal: L.gutter }]}>
+          <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.actionBtn}>
+            <Text variant="hero" style={styles.actionIcon}>◎</Text>
+          </Pressable>
+          <View style={styles.actionRight}>
+            <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={styles.actionBtn}>
+              <Text variant="hero" style={styles.actionIconDim}>?</Text>
             </Pressable>
-          </View>
-          <View style={styles.wordmarkWrap}>
-            <Image
-              source={require("@/assets/images/travld-logo.png")}
-              style={styles.logo}
-              contentFit="contain"
-            />
-          </View>
-          <View style={[styles.headerSide, styles.headerSideRight]}>
-            <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={styles.headerBtn}>
-              <Text variant="hero" style={styles.headerIconDim}>?</Text>
-            </Pressable>
-            <Pressable onPress={() => setShowAdd(true)} hitSlop={12} style={styles.headerBtn}>
-              <Text variant="hero" style={styles.headerIcon}>＋</Text>
+            <Pressable onPress={() => setShowAdd(true)} hitSlop={12} style={styles.actionBtn}>
+              <Text variant="hero" style={styles.actionIcon}>＋</Text>
             </Pressable>
           </View>
         </View>
+
+        {/* big logo */}
+        <Image source={require("@/assets/images/travld-logo.png")} style={styles.logo} contentFit="contain" />
 
         {error && <Text variant="body" style={styles.error}>{error}</Text>}
 
-        {/* shareable card: swipeable map + stat card */}
-        <View ref={cardRef} collapsable={false} style={styles.shareCard}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={onPage}
-          >
-            <View style={{ width: L.width }}>
-              <PassportMap visited={visited} onToggle={handleToggle} theme={theme} variant="world" />
+        {country ? (
+          /* ── country mode: home map is a map of the selected country ── */
+          <>
+            <View style={styles.countryBar}>
+              <Pressable onPress={() => setCountry(null)} hitSlop={12} style={styles.worldBack}>
+                <Text variant="body" style={styles.worldBackText}>‹ World</Text>
+              </Pressable>
+              <Text variant="hero" style={styles.countryName} numberOfLines={1}>{country.name}</Text>
+              <View style={styles.worldBack} />
             </View>
-            <View style={{ width: L.width }}>
-              <PassportMap
-                visited={visited}
-                theme={theme}
-                variant="heatmap"
-                regionProgress={regionProgress ?? undefined}
+
+            {cAdmin1 ? (
+              <CountryMap map={cAdmin1} visitedNames={cVisitedNames} theme={theme}
+                onRegionPress={(name) => {
+                  const id = cIdByName.get(normalizeName(name));
+                  if (id != null) void toggleRegion(id);
+                }}
               />
-            </View>
-          </ScrollView>
+            ) : (
+              <View style={styles.mapLoading}><ActivityIndicator color={colors.mint} /></View>
+            )}
 
-          <View style={styles.dots}>
-            {["World", "Regions"].map((label, i) => (
-              <View key={label} style={styles.dotWrap}>
-                <View style={[styles.dot, i === page && styles.dotActive]} />
-              </View>
-            ))}
-          </View>
-          <Text variant="body" style={styles.pageLabel}>{page === 0 ? "World" : "Regions"}</Text>
+            {cDetail && (
+              <Text variant="hero" style={styles.pageLabel}>
+                {cDetail.regionVisited} / {cDetail.regionTotal} {regionLabel.toUpperCase()}
+              </Text>
+            )}
+            <Text variant="body" style={styles.hint}>Tap a {regionLabel.toLowerCase()} to mark it visited.</Text>
 
-          {/* Been-style stat card */}
-          <View style={[styles.statCard, { marginHorizontal: L.gutter }]}>
-            <View style={styles.statCol}>
-              <Text variant="hero" style={styles.statBig}>{pct}%</Text>
-              <Text variant="hero" style={styles.statLabel}>WORLD</Text>
-            </View>
-            <Ring frac={unCount / UN_COUNTRY_DENOMINATOR} color={theme.visited} />
-            <View style={styles.statCol}>
-              <Text variant="hero" style={styles.statBig}>{unCount}</Text>
-              <Text variant="hero" style={styles.statLabel}>COUNTRIES</Text>
-            </View>
-          </View>
-        </View>
-
-        <Text variant="body" style={styles.statSub}>Out of {UN_COUNTRY_DENOMINATOR} UN countries</Text>
-
-        <Pressable style={[styles.shareBtn, { marginHorizontal: L.gutter }]} onPress={handleShare}>
-          <Text variant="hero" style={styles.shareText}>Share</Text>
-        </Pressable>
-
-        {/* quick-jump country strip → open a country's states/cities/stats */}
-        {visitedList.length > 0 && (
-          <View>
-            <Text variant="hero" style={[styles.sectionTitle, { paddingHorizontal: L.gutter }]}>
-              My Countries
-            </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: L.gutter, gap: spacing.sm, paddingTop: spacing.sm }}
-            >
-              {visitedList.map(({ iso, name }) => (
-                <Pressable key={iso} onPress={() => setSelectedIso2(iso)} style={styles.countryChip}>
-                  <Text variant="body" style={styles.countryChipText}>{name}</Text>
+            <View style={{ paddingHorizontal: L.gutter }}>
+              {(cDetail?.regions ?? []).map((r) => (
+                <Pressable key={r.id} onPress={() => toggleRegion(r.id)} style={[styles.row, { minHeight: L.listRow }]}>
+                  <View style={[styles.rowDot, { backgroundColor: r.visited ? theme.visited : colors.grey }]} />
+                  <Text variant="body" numberOfLines={1} style={styles.rowText}>{r.name}</Text>
                 </Pressable>
               ))}
-            </ScrollView>
-          </View>
-        )}
+            </View>
+          </>
+        ) : (
+          /* ── world mode ── */
+          <>
+            <View ref={cardRef} collapsable={false} style={styles.shareCard}>
+              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onPage}>
+                <View style={{ width: L.width }}>
+                  <PassportMap visited={visited} onToggle={handleToggle} theme={theme} variant="world" />
+                </View>
+                <View style={{ width: L.width }}>
+                  <PassportMap visited={visited} theme={theme} variant="heatmap" regionProgress={regionProgress ?? undefined} />
+                </View>
+              </ScrollView>
 
-        {/* full list */}
-        <View style={{ paddingHorizontal: L.gutter }}>
-          {visitedList.length === 0 ? (
-            <Text variant="body" style={styles.empty}>
-              Tap a country on the map to mark it visited.
-            </Text>
-          ) : (
-            visitedList.map(({ iso, name }) => (
-              <Pressable
-                key={iso}
-                onPress={() => setSelectedIso2(iso)}
-                style={[styles.row, { minHeight: L.listRow }]}
-              >
-                <View style={styles.rowDot} />
-                <Text variant="body" numberOfLines={1} ellipsizeMode="tail" style={styles.rowText}>
-                  {name}
-                </Text>
-                <Text variant="body" style={styles.chevron}>›</Text>
-              </Pressable>
-            ))
-          )}
-        </View>
+              <View style={styles.dots}>
+                {[0, 1].map((i) => (
+                  <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
+                ))}
+              </View>
+              <Text variant="body" style={styles.pageLabel}>{page === 0 ? "WORLD" : "REGIONS"}</Text>
+
+              <View style={[styles.statCard, { marginHorizontal: L.gutter }]}>
+                <View style={styles.statCol}>
+                  <Text variant="hero" style={styles.statBig}>{pct}%</Text>
+                  <Text variant="hero" style={styles.statLabel}>WORLD</Text>
+                </View>
+                <Ring frac={unCount / UN_COUNTRY_DENOMINATOR} color={theme.visited} />
+                <View style={styles.statCol}>
+                  <Text variant="hero" style={styles.statBig}>{unCount}</Text>
+                  <Text variant="hero" style={styles.statLabel}>COUNTRIES</Text>
+                </View>
+              </View>
+            </View>
+
+            <Text variant="body" style={styles.statSub}>Out of {UN_COUNTRY_DENOMINATOR} UN countries</Text>
+
+            <Pressable style={styles.shareBtn} onPress={handleShare}>
+              <Text variant="hero" style={styles.shareText}>Share</Text>
+            </Pressable>
+
+            <Text variant="hero" style={styles.sectionTitle}>My Countries</Text>
+            {visitedList.length === 0 ? (
+              <Text variant="body" style={styles.empty}>Tap a country on the map to mark it visited.</Text>
+            ) : (
+              <View style={{ paddingHorizontal: L.gutter }}>
+                {visitedList.map(({ iso, name }) => (
+                  <Pressable key={iso} onPress={() => openCountry(iso, name)} style={[styles.row, { minHeight: L.listRow }]}>
+                    <View style={styles.rowDot} />
+                    <Text variant="body" numberOfLines={1} style={styles.rowText}>{name}</Text>
+                    <Text variant="body" style={styles.chevron}>›</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </>
+        )}
       </ScrollView>
 
-      <CountryDetailSheet iso2={selectedIso2} onClose={() => setSelectedIso2(null)} onChanged={refreshVisited} />
       <ExploreMapModal visible={showMap} onClose={() => setShowMap(false)} />
       <AddVisitSheet visible={showAdd} onClose={() => setShowAdd(false)} onSaved={refreshVisited} />
       <HowToModal visible={showHelp} onClose={() => setShowHelp(false)} />
@@ -280,73 +315,51 @@ function Ring({ frac, color }: { frac: number; color: string }) {
   return (
     <Svg width={size} height={size}>
       <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.surfaceAlt} strokeWidth={stroke} fill="none" />
-      <Circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        stroke={color}
-        strokeWidth={stroke}
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c * (1 - p)}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
+        strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - p)}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`} />
     </Svg>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: "row", alignItems: "center" },
-  headerSide: { width: 84, flexDirection: "row", alignItems: "center" },
-  headerSideRight: { justifyContent: "flex-end" },
-  headerBtn: { width: 40, alignItems: "center" },
-  headerIcon: { color: colors.mint, fontSize: 24 },
-  headerIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
-  wordmarkWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  logo: { width: 200, height: 64 },
+  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  actionRight: { flexDirection: "row" },
+  actionBtn: { width: 40, alignItems: "center" },
+  actionIcon: { color: colors.mint, fontSize: 24 },
+  actionIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
+  logo: { width: "82%", height: 96, alignSelf: "center", marginTop: -spacing.xs },
   error: { color: "#FF6B6B", textAlign: "center", paddingHorizontal: spacing.md },
   shareCard: { backgroundColor: colors.bg, gap: spacing.sm },
   dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: spacing.xs },
-  dotWrap: {},
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.grey },
   dotActive: { backgroundColor: colors.mint, width: 20 },
-  pageLabel: { color: colors.textDim, fontSize: 13, textAlign: "center", textTransform: "uppercase", letterSpacing: 1 },
+  pageLabel: { color: colors.textDim, fontSize: 13, textAlign: "center", letterSpacing: 1 },
+  hint: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
   statCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: colors.surface, borderRadius: radius.card,
+    paddingVertical: spacing.lg, paddingHorizontal: spacing.lg, marginTop: spacing.sm,
   },
   statCol: { alignItems: "center", gap: 2, minWidth: 84 },
   statBig: { color: colors.mint, fontSize: 40, fontWeight: "800", letterSpacing: -1 },
   statLabel: { color: colors.textDim, fontSize: 12, letterSpacing: 1 },
   statSub: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
   shareBtn: {
-    alignSelf: "center",
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.mint,
+    alignSelf: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+    borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint,
   },
   shareText: { color: colors.mint, fontWeight: "600" },
   sectionTitle: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
-  countryChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-  },
-  countryChipText: { color: colors.textPrimary, fontSize: 14 },
-  empty: { color: colors.textDim, textAlign: "center" },
+  empty: { color: colors.textDim, textAlign: "center", paddingHorizontal: spacing.md },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
   rowText: { color: colors.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
   chevron: { color: colors.textDim, fontSize: 22 },
+  countryBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.md },
+  worldBack: { width: 72 },
+  worldBackText: { color: colors.mint, fontSize: 17, fontWeight: "600" },
+  countryName: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "700", color: colors.textPrimary },
+  mapLoading: { height: 200, alignItems: "center", justifyContent: "center" },
 });
