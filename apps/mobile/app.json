@@ -19,7 +19,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.travld.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "travld uses your location to center the map and place visit pins near where you are."
       }
     },
     "android": {
