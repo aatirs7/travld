@@ -8,7 +8,7 @@
     "scheme": "travld",
     "userInterfaceStyle": "dark",
     "runtimeVersion": {
-      "policy": "fingerprint"
+      "policy": "appVersion"
     },
     "updates": {
       "enabled": true,
@@ -16,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.travld.app"
+      "bundleIdentifier": "com.travld.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.travld.app",
@@ -48,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bb7d2eb0-5f8f-4a20-a30a-ff8a2f477f8a"
+      }
     }
   }
 }

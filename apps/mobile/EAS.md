@@ -5,11 +5,16 @@ without a rebuild). Config lives in `app.json` (`updates`, `runtimeVersion`,
 `ios.bundleIdentifier = com.travld.app`) and `eas.json` (build/submit profiles +
 update channels `development` / `preview` / `production`).
 
-`runtimeVersion` uses the **fingerprint** policy: EAS hashes the native layer, so
-a build and an OTA update are compatible only when the native fingerprint matches.
-JS/asset-only changes keep the same fingerprint → shippable as an OTA update. Any
-native change (new native module, config plugin, SDK bump) changes the fingerprint
-→ requires a fresh build. This is exactly "update without rebuild when possible."
+`runtimeVersion` uses the **appVersion** policy: the runtime version equals the
+app's `version` (e.g. `1.0.0`), computed identically on any machine. OTA updates
+apply to installed builds with the same app version. When you change native code
+(new native module, config plugin, SDK bump), **bump `version` in app.json** before
+building so old installs don't receive an incompatible JS update.
+
+> We intentionally do NOT use the `fingerprint` policy: it hashes `node_modules`,
+> and in this pnpm monorepo the hash computed on Windows (local) differs from the
+> one computed on EAS's Linux builder, which makes every build fail with a
+> "Runtime version mismatch". appVersion is deterministic and avoids that.
 
 ## One-time setup (needs your Expo + Apple accounts — interactive)
 
