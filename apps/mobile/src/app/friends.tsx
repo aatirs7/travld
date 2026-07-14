@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { CompareMap } from "@/components/CompareMap";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import {
   api,
   type CompareResult,
@@ -60,10 +61,8 @@ export default function FriendsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <View style={{ paddingTop: L.insets.top + spacing.sm, paddingHorizontal: L.gutter, gap: spacing.md }}>
-        <Text variant="hero" style={styles.h1}>
-          Friends
-        </Text>
+      <ScreenHeader title="Friends" />
+      <View style={{ paddingHorizontal: L.gutter, paddingBottom: spacing.sm }}>
         <View style={styles.segment}>
           {TABS.map((t) => (
             <Pressable key={t} onPress={() => setTab(t)} style={[styles.segItem, tab === t && styles.segItemActive]}>

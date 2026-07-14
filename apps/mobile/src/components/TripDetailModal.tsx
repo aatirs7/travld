@@ -84,10 +84,11 @@ export function TripDetailModal({
     <Modal visible={tripId != null} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: L.insets.top + spacing.sm, paddingHorizontal: L.gutter }]}>
-          <Text variant="hero" style={styles.title} numberOfLines={1}>{data?.trip.title ?? "…"}</Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text variant="hero" style={styles.close}>Done</Text>
+          <Pressable onPress={onClose} hitSlop={16} style={styles.backBtn}>
+            <Text variant="hero" style={styles.close}>‹ Back</Text>
           </Pressable>
+          <Text variant="hero" style={styles.title} numberOfLines={1}>{data?.trip.title ?? "…"}</Text>
+          <View style={styles.backBtn} />
         </View>
 
         {!data ? (
@@ -151,8 +152,9 @@ function Stat({ value, label }: { value: number | string; label: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: spacing.sm },
-  title: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, flex: 1, marginRight: spacing.md },
+  header: { flexDirection: "row", alignItems: "center", paddingBottom: spacing.sm },
+  backBtn: { width: 76, justifyContent: "center" },
+  title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, flex: 1, textAlign: "center" },
   close: { color: colors.mint, fontSize: 17, fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapWrap: { width: "100%", aspectRatio: 1.4, backgroundColor: colors.surface },

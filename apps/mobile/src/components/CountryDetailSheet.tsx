@@ -109,14 +109,13 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
     <Modal visible={iso2 != null} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={[styles.header, { paddingTop: L.insets.top + spacing.sm, paddingHorizontal: L.gutter }]}>
+          <Pressable onPress={onClose} hitSlop={16} style={styles.backBtn}>
+            <Text variant="hero" style={styles.back}>‹ Back</Text>
+          </Pressable>
           <Text variant="hero" style={styles.title} numberOfLines={1}>
             {detail?.name ?? "…"}
           </Text>
-          <Pressable onPress={onClose} hitSlop={12}>
-            <Text variant="hero" style={styles.close}>
-              Done
-            </Text>
-          </Pressable>
+          <View style={styles.backBtn} />
         </View>
 
         {loading || !detail ? (
@@ -290,11 +289,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingBottom: spacing.sm,
   },
-  title: { fontSize: 24, fontWeight: "700", color: colors.textPrimary, flex: 1, marginRight: spacing.md },
-  close: { color: colors.mint, fontSize: 17, fontWeight: "600" },
+  backBtn: { width: 76, justifyContent: "center" },
+  back: { color: colors.mint, fontSize: 17, fontWeight: "600" },
+  title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, flex: 1, textAlign: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
   topRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.sm },
   mapWrap: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, overflow: "hidden", padding: spacing.sm },

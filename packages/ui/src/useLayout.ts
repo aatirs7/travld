@@ -3,8 +3,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type Tier = "sm" | "md" | "lg";
 
-/** Approximate native tab bar height; combine with insets.bottom for scroll pads. */
-export const TAB_BAR_HEIGHT = 49;
+/** Approximate native tab bar height; combine with insets.bottom for scroll pads.
+ *  Generous so content never sits under the bar on any device. */
+export const TAB_BAR_HEIGHT = 64;
 
 /**
  * The single source of layout truth. No screen computes its own dimensions.

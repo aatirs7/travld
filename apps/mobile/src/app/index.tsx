@@ -10,8 +10,10 @@ import { captureRef } from "react-native-view-shot";
 import { AddVisitSheet } from "@/components/AddVisitSheet";
 import { CountryDetailSheet } from "@/components/CountryDetailSheet";
 import { ExploreMapModal } from "@/components/ExploreMapModal";
+import { HowToModal } from "@/components/HowToModal";
 import { PassportMap } from "@/components/PassportMap";
 import { api, type CountryRow, type RegionProgress } from "@/lib/api";
+import { getFlag, setFlag } from "@/lib/local-flags";
 import { useMapTheme } from "@/lib/map-theme-context";
 
 type MapVariant = "world" | "heatmap";
@@ -26,6 +28,7 @@ export default function MapScreen() {
   const [selectedIso2, setSelectedIso2] = useState<string | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [mapVariant, setMapVariant] = useState<MapVariant>("world");
   const [regionProgress, setRegionProgress] = useState<RegionProgress | null>(null);
   const { theme } = useMapTheme();
@@ -47,6 +50,14 @@ export default function MapScreen() {
     const v = await api.getVisited();
     setVisited(new Set(v.visitedIso2));
     setUnCount(v.unCount);
+  }, []);
+
+  // show the how-to once, on first launch
+  useEffect(() => {
+    if (!getFlag("seenHowTo")) {
+      setShowHelp(true);
+      setFlag("seenHowTo", true);
+    }
   }, []);
 
   const placeIdByIso2 = useMemo(() => {
@@ -134,15 +145,22 @@ export default function MapScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.headerBtn}>
-            <Text variant="hero" style={styles.headerIcon}>◎</Text>
-          </Pressable>
+          <View style={styles.headerSide}>
+            <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.headerBtn}>
+              <Text variant="hero" style={styles.headerIcon}>◎</Text>
+            </Pressable>
+          </View>
           <Text variant="hero" style={styles.wordmark}>
             travld
           </Text>
-          <Pressable onPress={() => setShowAdd(true)} hitSlop={12} style={styles.headerBtn}>
-            <Text variant="hero" style={styles.headerIcon}>＋</Text>
-          </Pressable>
+          <View style={[styles.headerSide, styles.headerSideRight]}>
+            <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={styles.headerBtn}>
+              <Text variant="hero" style={styles.headerIconDim}>?</Text>
+            </Pressable>
+            <Pressable onPress={() => setShowAdd(true)} hitSlop={12} style={styles.headerBtn}>
+              <Text variant="hero" style={styles.headerIcon}>＋</Text>
+            </Pressable>
+          </View>
         </View>
 
         {error && (
@@ -231,6 +249,7 @@ export default function MapScreen() {
       />
       <ExploreMapModal visible={showMap} onClose={() => setShowMap(false)} />
       <AddVisitSheet visible={showAdd} onClose={() => setShowAdd(false)} onSaved={refreshVisited} />
+      <HowToModal visible={showHelp} onClose={() => setShowHelp(false)} />
     </View>
   );
 }
@@ -238,9 +257,12 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: "center", justifyContent: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  header: { flexDirection: "row", alignItems: "center" },
+  headerSide: { width: 84, flexDirection: "row", alignItems: "center" },
+  headerSideRight: { justifyContent: "flex-end" },
   headerBtn: { width: 40, alignItems: "center" },
   headerIcon: { color: colors.mint, fontSize: 24 },
+  headerIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
   wordmark: {
     color: colors.mint,
     fontSize: 22,

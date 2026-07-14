@@ -1,8 +1,9 @@
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
-import Svg, { Circle, G, Rect } from "react-native-svg";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import Svg, { Circle, G } from "react-native-svg";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { api } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
 
@@ -27,16 +28,31 @@ export default function VisualizeScreen() {
   const L = useLayout();
   const { theme } = useMapTheme();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
-    (api.getStats() as Promise<Stats>).then(setStats).catch(() => setStats(null));
+  const load = useCallback(() => {
+    setError(false);
+    api.getStats().then(setStats).catch(() => setError(true));
   }, []);
+  useEffect(() => load(), [load]);
 
   if (!stats) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={styles.container}>
         <StatusBar style="light" />
-        <ActivityIndicator color={colors.mint} />
+        <ScreenHeader title="Stats" />
+        <View style={styles.center}>
+          {error ? (
+            <>
+              <Text variant="body" style={styles.dim}>Couldn’t load your stats.</Text>
+              <Pressable onPress={load} style={styles.retry}>
+                <Text variant="body" style={styles.retryText}>Retry</Text>
+              </Pressable>
+            </>
+          ) : (
+            <ActivityIndicator color={colors.mint} />
+          )}
+        </View>
       </View>
     );
   }
@@ -47,19 +63,16 @@ export default function VisualizeScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <ScreenHeader title="Stats" />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: L.gutter,
-          paddingTop: L.insets.top + spacing.sm,
+          paddingTop: spacing.sm,
           paddingBottom: L.scrollPadBottom,
           gap: L.sectionGap,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="hero" style={styles.h1}>
-          Visualize
-        </Text>
-
         {/* stat tiles */}
         <View style={styles.tiles}>
           <Tile value={stats.totals.countries} label="Countries" />
@@ -179,7 +192,9 @@ function formatKm(km: number) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  center: { alignItems: "center", justifyContent: "center" },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md },
+  retry: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint },
+  retryText: { color: colors.mint, fontWeight: "600" },
   h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
   section: { fontSize: 20, fontWeight: "700", color: colors.textPrimary },
   tiles: { flexDirection: "row", gap: spacing.sm },

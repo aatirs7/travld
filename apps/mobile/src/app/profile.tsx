@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { PassportMap } from "@/components/PassportMap";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { api } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
 
@@ -38,19 +39,16 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <ScreenHeader title="Profile" />
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: L.gutter,
-          paddingTop: L.insets.top + spacing.sm,
+          paddingTop: spacing.sm,
           paddingBottom: L.scrollPadBottom,
           gap: L.sectionGap,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="hero" style={styles.h1}>
-          Profile
-        </Text>
-
         <Text variant="hero" style={styles.section}>
           Map Style
         </Text>

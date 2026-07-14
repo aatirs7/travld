@@ -4,6 +4,7 @@ import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ScreenHeader } from "@/components/ScreenHeader";
 import { TripDetailModal } from "@/components/TripDetailModal";
 import { api, type TripListItem } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
@@ -62,14 +63,14 @@ export default function TripsScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <View style={{ paddingTop: L.insets.top + spacing.sm, paddingHorizontal: L.gutter }}>
-        <View style={styles.headerRow}>
-          <Text variant="hero" style={styles.h1}>Trips</Text>
-          <Pressable onPress={createTrip} style={styles.newBtn}>
+      <ScreenHeader
+        title="Trips"
+        right={
+          <Pressable onPress={createTrip} hitSlop={8}>
             <Text variant="body" style={styles.newText}>+ New</Text>
           </Pressable>
-        </View>
-      </View>
+        }
+      />
 
       {trips == null ? (
         <View style={styles.center}><ActivityIndicator color={colors.mint} /></View>
