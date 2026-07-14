@@ -6,6 +6,8 @@ export default function AppTabs() {
   return (
     <NativeTabs
       backgroundColor={tc.surface}
+      blurEffect="none"
+      disableTransparentOnScrollEdge
       indicatorColor={tc.surfaceAlt}
       labelStyle={{ selected: { color: tc.mint } }}>
       <NativeTabs.Trigger name="index">

@@ -44,3 +44,23 @@ export function setString(key: string, value: string): void {
     /* no-op */
   }
 }
+
+// JSON cache for API/map payloads — lets screens paint instantly from the last
+// known data while the network revalidates in the background.
+export function getCache<T>(key: string): T | null {
+  const s = getString(`cache:${key}`);
+  if (!s) return null;
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return null;
+  }
+}
+
+export function setCache(key: string, value: unknown): void {
+  try {
+    setString(`cache:${key}`, JSON.stringify(value));
+  } catch {
+    /* no-op */
+  }
+}

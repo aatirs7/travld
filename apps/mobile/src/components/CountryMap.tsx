@@ -33,27 +33,32 @@ export function CountryMap({ map, visitedNames, theme = defaultMapTheme, onRegio
   );
 
   // The pre-bake fits each country into a square canvas and centers it, so a
-  // wide country (US) or tall one only occupies a band of the 800×800 box.
-  // Derive a tight viewBox from the actual path coords so the country fills the
-  // frame instead of floating small in the middle.
+  // wide/tall country only occupies a band of the 800×800 box. Worse, outlying
+  // territories (US Aleutians wrapping the antimeridian to the far edge, France's
+  // overseas départements) blow up the raw min/max so the mainland renders tiny.
+  // Fix: derive the viewBox from the *percentile* bounds of all path points,
+  // which discards those sparse outliers and frames the main landmass.
   const { viewBox, aspectRatio } = useMemo(() => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const xs: number[] = [], ys: number[] = [];
     for (const r of map.regions) {
       const nums = r.d.match(/-?\d*\.?\d+(?:e-?\d+)?/gi);
       if (!nums) continue;
       for (let i = 0; i + 1 < nums.length; i += 2) {
-        const x = +nums[i]!, y = +nums[i + 1]!;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
+        xs.push(+nums[i]!);
+        ys.push(+nums[i + 1]!);
       }
     }
-    if (!isFinite(minX) || maxX <= minX || maxY <= minY) {
+    if (xs.length < 4) {
       return { viewBox: `0 0 ${map.width} ${map.height}`, aspectRatio: map.width / map.height };
     }
-    const w = maxX - minX, h = maxY - minY;
-    const pad = Math.max(w, h) * 0.04;
+    xs.sort((a, b) => a - b);
+    ys.sort((a, b) => a - b);
+    const q = (arr: number[], p: number) => arr[Math.min(arr.length - 1, Math.max(0, Math.floor(arr.length * p)))]!;
+    // 1.5% trim on each end drops the far-flung islands/territories.
+    const minX = q(xs, 0.015), maxX = q(xs, 0.985);
+    const minY = q(ys, 0.015), maxY = q(ys, 0.985);
+    const w = Math.max(1, maxX - minX), h = Math.max(1, maxY - minY);
+    const pad = Math.max(w, h) * 0.05;
     return {
       viewBox: `${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`,
       aspectRatio: (w + pad * 2) / (h + pad * 2),

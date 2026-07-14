@@ -1,8 +1,9 @@
 import { percentOfWorld, UN_COUNTRY_DENOMINATOR } from "@travld/core";
 import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
-import { useAppColors } from "@/lib/app-theme";
+import { useAppColors, useAppTheme } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import { SymbolView } from "expo-symbols";
 import { useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
@@ -30,16 +31,18 @@ import {
   type CountryDetail,
   type CountryRow,
 } from "@/lib/api";
-import { getFlag, setFlag } from "@/lib/local-flags";
+import { getCache, getFlag, setCache, setFlag } from "@/lib/local-flags";
 import { useMapTheme } from "@/lib/map-theme-context";
 
 const CONTINENTS = ["North America", "South America", "Europe", "Africa", "Asia", "Oceania"];
 
 export default function MapScreen() {
-  const [visited, setVisited] = useState<Set<string>>(new Set());
-  const [unCount, setUnCount] = useState(0);
-  const [countries, setCountries] = useState<CountryRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedVisited = getCache<{ visitedIso2: string[]; unCount: number }>("visited");
+  const cachedCountries = getCache<CountryRow[]>("countries");
+  const [visited, setVisited] = useState<Set<string>>(new Set(cachedVisited?.visitedIso2 ?? []));
+  const [unCount, setUnCount] = useState(cachedVisited?.unCount ?? 0);
+  const [countries, setCountries] = useState<CountryRow[]>(cachedCountries ?? []);
+  const [loading, setLoading] = useState(!cachedCountries);
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   const [showMap, setShowMap] = useState(false);
@@ -53,12 +56,14 @@ export default function MapScreen() {
   const { theme } = useMapTheme();
   const L = useLayout();
   const tc = useAppColors();
+  const { mode, setMode } = useAppTheme();
   const styles = useMemo(() => makeStyles(tc), [tc]);
 
   const refreshVisited = useCallback(async () => {
     const v = await api.getVisited();
     setVisited(new Set(v.visitedIso2));
     setUnCount(v.unCount);
+    setCache("visited", { visitedIso2: v.visitedIso2, unCount: v.unCount });
   }, []);
 
   useEffect(() => {
@@ -86,12 +91,16 @@ export default function MapScreen() {
         setVisited(new Set(v.visitedIso2));
         setUnCount(v.unCount);
         setCountries(c.countries);
+        setCache("visited", { visitedIso2: v.visitedIso2, unCount: v.unCount });
+        setCache("countries", c.countries);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load");
+        // Keep any cached data on screen; only surface an error if we have none.
+        if (!cachedCountries) setError(e instanceof Error ? e.message : "Failed to load");
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFocusEffect(
@@ -126,14 +135,16 @@ export default function MapScreen() {
   // ── country mode ──
   const openCountry = useCallback(async (iso2: string, name: string) => {
     setCountry({ iso2, name });
-    setCDetail(null);
-    setCAdmin1(null);
+    // Paint instantly from cache, then revalidate.
+    setCDetail(getCache<CountryDetail>(`country:${iso2}`));
+    setCAdmin1(getCache<Admin1Map>(`admin1:${iso2}`));
     const [d, m] = await Promise.all([
       api.getCountry(iso2),
       api.getAdmin1Map(iso2).catch(() => null),
     ]);
     setCDetail(d);
     setCAdmin1(m);
+    setCache(`country:${iso2}`, d);
   }, []);
 
   const cVisitedNames = useMemo(
@@ -150,7 +161,12 @@ export default function MapScreen() {
     async (regionId: number) => {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await api.togglePlace(regionId);
-      if (country) api.getCountry(country.iso2).then(setCDetail).catch(() => {});
+      if (country) {
+        api.getCountry(country.iso2).then((d) => {
+          setCDetail(d);
+          setCache(`country:${country.iso2}`, d);
+        }).catch(() => {});
+      }
       void refreshVisited();
     },
     [country, refreshVisited],
@@ -219,6 +235,18 @@ export default function MapScreen() {
           <View style={styles.actionLeft}>
             <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.actionBtn}>
               <Text variant="hero" style={styles.actionIcon}>◎</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setMode(mode === "light" ? "dark" : "light")}
+              hitSlop={12}
+              style={styles.actionBtn}
+            >
+              <SymbolView
+                name={mode === "light" ? "moon.fill" : "sun.max.fill"}
+                size={22}
+                tintColor={tc.mint}
+                resizeMode="scaleAspectFit"
+              />
             </Pressable>
           </View>
           <Image source={require("@/assets/images/travld-logo.png")} style={styles.logo} contentFit="contain" />

@@ -1,5 +1,6 @@
 import type { DerivedTrip, EnrichedVisit, MapTheme, RoutePoint } from "@travld/core";
 import { BASE_URL, isNetworkError } from "./config";
+import { getCache, setCache } from "./local-flags";
 import { enqueue } from "./offline-queue";
 
 // Thin client for the travld API (apps/web). No auth yet — the server runs
@@ -232,7 +233,15 @@ export const api = {
     }),
 
   // static admin-1 SVG maps served by the web app
-  getAdmin1Map: (iso2: string) => json<Admin1Map>(`/maps/admin1/${iso2}.json`),
+  // Admin-1 geometry never changes — serve from the local cache and only hit the
+  // CDN on a cache miss, then persist it forever.
+  getAdmin1Map: async (iso2: string): Promise<Admin1Map> => {
+    const cached = getCache<Admin1Map>(`admin1:${iso2}`);
+    if (cached) return cached;
+    const map = await json<Admin1Map>(`/maps/admin1/${iso2}.json`);
+    setCache(`admin1:${iso2}`, map);
+    return map;
+  },
 
   // Phase 3 — social
   getFeed: () => json<{ feed: FeedItem[] }>("/api/feed"),
