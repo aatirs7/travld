@@ -111,6 +111,8 @@ export function citiesVisited(
 
 export * from "./map-theme";
 export * from "./trips";
+export * from "./format";
+export * from "./timelapse";
 
 export function percentOfWorld(
   countryCount: number,

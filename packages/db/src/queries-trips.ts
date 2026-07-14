@@ -101,6 +101,14 @@ export async function getTrips(userId: string): Promise<TripListItem[]> {
   }));
 }
 
+/**
+ * Every visit a user has, enriched and in chronological order. Powers the year
+ * scrubber and timelapse — both are pure projections over this dated log.
+ */
+export async function getUserVisits(userId: string): Promise<EnrichedVisit[]> {
+  return sortVisits(await fetchEnrichedVisits(userId));
+}
+
 /** Ungrouped visits (tripId null), newest first. Client groups by year. */
 export async function getUngroupedVisits(userId: string): Promise<EnrichedVisit[]> {
   const visits = await fetchEnrichedVisits(userId);

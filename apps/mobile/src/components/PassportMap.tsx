@@ -55,6 +55,16 @@ interface Props {
   regionProgress?: Record<string, { total: number; visited: number }>;
   /** iso2 codes to zoom/focus to (a continent). Others are dimmed. */
   focus?: Set<string>;
+  /** Countries to render white this instant (timelapse "just landed" flash). */
+  flash?: Set<string>;
+  /** Disable pinch/pan (e.g. during timelapse playback). */
+  noZoom?: boolean;
+  /** Fill the parent (flex:1) instead of the default 1.55 aspect-ratio card. */
+  fill?: boolean;
+  /** Long-press anywhere on the map — opens the map-variant menu (§2.1). */
+  onLongPress?: () => void;
+  /** Override the water/stroke color (default = app bg). Timelapse forces black. */
+  background?: string;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -70,9 +80,15 @@ export function PassportMap({
   variant = "world",
   regionProgress,
   focus,
+  flash,
+  noZoom,
+  fill,
+  onLongPress,
+  background,
   style,
 }: Props) {
   const tc = useAppColors();
+  const bg = background ?? tc.bg;
 
   // When focused on a continent, zoom the viewBox to that continent's bounds and
   // switch to "meet" so the whole continent shows (bg-colored margins stay seamless).
@@ -137,7 +153,16 @@ export function PassportMap({
       savedTy.value = ty.value;
     });
 
-  const zoomGesture = Gesture.Simultaneous(pinch, pan);
+  // Long-press opens the map-variant menu. runOnJS so the plain callback fires
+  // on the JS thread. Composed simultaneously with pinch/pan.
+  const longPress = Gesture.LongPress()
+    .minDuration(350)
+    .onStart(() => onLongPress?.())
+    .runOnJS(true);
+
+  const zoomGesture = noZoom
+    ? Gesture.Simultaneous(longPress)
+    : Gesture.Simultaneous(pinch, pan, longPress);
   const zoomStyle = useAnimatedStyle(() => ({
     flex: 1,
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
@@ -160,14 +185,23 @@ export function PassportMap({
           }
         }
         if (focus && focus.size > 0 && !focus.has(c.iso)) fillOpacity *= 0.28;
+        if (flash?.has(c.iso)) {
+          fill = "#FFFFFF"; // just landed — flashes white before settling to mint
+          fillOpacity = 1;
+        }
         return { ...c, isVisited, fill, fillOpacity };
       }),
-    [visited, variant, regionProgress, theme, focus],
+    [visited, variant, regionProgress, theme, focus, flash],
   );
 
   return (
     <GestureDetector gesture={zoomGesture}>
-      <Animated.View style={[{ width: "100%", aspectRatio: 1.55, overflow: "hidden" }, style]}>
+      <Animated.View
+        style={[
+          fill ? { flex: 1, overflow: "hidden" } : { width: "100%", aspectRatio: 1.55, overflow: "hidden" },
+          style,
+        ]}
+      >
         <Animated.View style={zoomStyle}>
           <Svg
             width="100%"
@@ -175,15 +209,15 @@ export function PassportMap({
             viewBox={viewBox}
             preserveAspectRatio={preserve}
           >
-            {/* water always == app background so the map is seamless */}
-            <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={tc.bg} />
+            {/* water always == background so the map is seamless */}
+            <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={bg} />
             {paths.map((p) => (
               <Path
                 key={p.iso}
                 d={p.d}
                 fill={p.fill}
                 fillOpacity={p.fillOpacity}
-                stroke={tc.bg}
+                stroke={bg}
                 strokeWidth={0.5}
                 onPress={onToggle ? () => onToggle(p.iso) : undefined}
               />

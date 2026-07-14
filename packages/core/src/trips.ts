@@ -106,6 +106,44 @@ export function revisitCount(visits: EnrichedVisit[], placeId: number): number {
   return visits.filter((v) => v.placeId === placeId).length;
 }
 
+const TRANSIT_PURPOSES = new Set(["transit", "layover"]);
+
+/**
+ * Countries (ISO2) the user had visited as of the end of `cutoffYear`, for the
+ * year scrubber. A dated visit counts when its arrival year <= cutoffYear;
+ * UNDATED visits are always included (they have no year, so no year can exclude
+ * them). Transit/layover excluded unless `includeTransit`.
+ */
+export function visitedIsoAsOf(
+  visits: EnrichedVisit[],
+  cutoffYear: number,
+  opts: { includeTransit?: boolean } = {},
+): Set<string> {
+  const out = new Set<string>();
+  for (const v of visits) {
+    if (!v.countryIso2) continue;
+    if (!opts.includeTransit && TRANSIT_PURPOSES.has(v.purpose)) continue;
+    if (v.arrivedAt) {
+      const year = Number(v.arrivedAt.slice(0, 4));
+      if (Number.isFinite(year) && year > cutoffYear) continue;
+    }
+    out.add(v.countryIso2);
+  }
+  return out;
+}
+
+/** Earliest arrival year in the log, or null if no visit is dated. */
+export function earliestVisitYear(visits: EnrichedVisit[]): number | null {
+  let min: number | null = null;
+  for (const v of visits) {
+    if (!v.arrivedAt) continue;
+    const year = Number(v.arrivedAt.slice(0, 4));
+    if (!Number.isFinite(year)) continue;
+    if (min == null || year < min) min = year;
+  }
+  return min;
+}
+
 export interface RoutePoint {
   lat: number;
   lng: number;

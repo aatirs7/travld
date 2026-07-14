@@ -3,6 +3,8 @@
  * whole app can switch themes at runtime. One mint accent in both.
  */
 
+import { Platform } from "react-native";
+
 export interface ThemeColors {
   bg: string;
   surface: string;
@@ -12,6 +14,8 @@ export interface ThemeColors {
   textDim: string;
   mint: string;
   mintDim: string;
+  /** Empty passport-strip tick (unvisited unit). */
+  tickEmpty: string;
 }
 
 export const darkColors: ThemeColors = {
@@ -23,6 +27,7 @@ export const darkColors: ThemeColors = {
   textDim: "#8A8A8E",
   mint: "#00E08F",
   mintDim: "#0A7D52",
+  tickEmpty: "#252527",
 };
 
 export const lightColors: ThemeColors = {
@@ -34,7 +39,20 @@ export const lightColors: ThemeColors = {
   textDim: "#6C6C74",
   mint: "#00B878", // slightly deeper for contrast on light
   mintDim: "#0A7D52",
+  tickEmpty: "#D5D5DD",
 };
+
+/**
+ * System monospace family. Every figure in the app (percentages, ratios, years,
+ * distances, counts) renders in this — the fastest signal of "engineered, not
+ * decorative" and the clearest break from Been.
+ */
+export const fontMono = Platform.select({
+  ios: "ui-monospace",
+  android: "monospace",
+  web: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+  default: "monospace",
+}) as string;
 
 export type ThemeMode = "dark" | "light";
 

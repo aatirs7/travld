@@ -195,7 +195,7 @@ export function AddVisitSheet({
                 // browse: pick a country, grouped by continent, with flags
                 groupByContinent(allCountries).map(([continent, list]) => (
                   <View key={continent}>
-                    <Text variant="hero" style={styles.browseLabel}>{continent.toUpperCase()}</Text>
+                    <Text variant="hero" style={styles.browseLabel}>{continent}</Text>
                     {list.map((c) => (
                       <Pressable
                         key={c.id}
@@ -327,7 +327,7 @@ const makeStyles = (tc: ThemeColors) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowText: { color: tc.textPrimary, fontSize: 16 },
   rowSub: { color: tc.textDim, fontSize: 13 },
-  browseLabel: { color: tc.mint, fontSize: 12, letterSpacing: 1, marginTop: spacing.md, fontWeight: "700" },
+  browseLabel: { color: tc.textDim, fontSize: 13, marginTop: spacing.md, fontWeight: "700" },
   flag: { fontSize: 22 },
   plus: { color: tc.mint, fontSize: 24, fontWeight: "300", paddingHorizontal: spacing.sm },
   selected: { fontSize: 24, fontWeight: "700", color: tc.textPrimary },

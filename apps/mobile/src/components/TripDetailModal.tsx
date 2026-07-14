@@ -149,8 +149,10 @@ function Stat({ value, label }: { value: number | string; label: string }) {
   const styles = useMemo(() => makeStyles(tc), [tc]);
   return (
     <View style={styles.stat}>
-      <Text variant="hero" style={styles.statValue}>{value}</Text>
-      <Text variant="hero" style={styles.statLabel}>{label.toUpperCase()}</Text>
+      <Text variant="hero" style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text variant="hero" style={styles.statLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -164,9 +166,9 @@ const makeStyles = (tc: ThemeColors) => StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   mapWrap: { width: "100%", aspectRatio: 1.4, backgroundColor: tc.surface },
   stats: { flexDirection: "row", gap: spacing.sm },
-  stat: { flex: 1, backgroundColor: tc.surface, borderRadius: radius.card, paddingVertical: spacing.md, alignItems: "center", gap: 2 },
+  stat: { flex: 1, minWidth: 0, backgroundColor: tc.surface, borderRadius: radius.card, paddingVertical: spacing.md, paddingHorizontal: 4, alignItems: "center", gap: 2 },
   statValue: { color: tc.mint, fontSize: 22, fontWeight: "700" },
-  statLabel: { color: tc.textDim, fontSize: 10, letterSpacing: 0.5 },
+  statLabel: { color: tc.textDim, fontSize: 10 },
   companions: { color: tc.textPrimary },
   section: { fontSize: 20, fontWeight: "700", color: tc.textPrimary },
   stopRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },

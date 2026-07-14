@@ -273,6 +273,19 @@ export const api = {
   // Phase 4 — visualize
   getStats: () => json<VisualizeStats>("/api/me/stats"),
 
+  // Full dated visit log — powers the year scrubber and timelapse. Cache-first
+  // so the scrubber paints instantly, then revalidate.
+  getUserVisits: async (): Promise<EnrichedVisit[]> => {
+    const cached = getCache<EnrichedVisit[]>("visits:me");
+    void json<{ visits: EnrichedVisit[] }>("/api/me/visits")
+      .then((r) => setCache("visits:me", r.visits))
+      .catch(() => {});
+    if (cached) return cached;
+    const r = await json<{ visits: EnrichedVisit[] }>("/api/me/visits");
+    setCache("visits:me", r.visits);
+    return r.visits;
+  },
+
   // Trips
   getTrips: () => json<{ trips: TripListItem[] }>("/api/trips"),
   getUngrouped: () => json<{ visits: EnrichedVisit[] }>("/api/trips/ungrouped"),

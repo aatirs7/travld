@@ -1,4 +1,5 @@
 import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { pluralize, relativeTime } from "@travld/core";
 import { useAppColors } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
@@ -112,28 +113,90 @@ export default function FriendsScreen() {
   );
 }
 
+interface FeedGroup {
+  key: string;
+  displayName: string;
+  handle: string;
+  count: number;
+  placeName: string;
+  placeLevel: string;
+  countryName: string | null;
+  createdAt: string; // most recent event in the burst (feed is newest-first)
+}
+
+/** Plural noun for a place level, e.g. level "city" + n=6 → "6 cities". */
+function levelCount(n: number, level: string): string {
+  switch (level) {
+    case "city": return pluralize(n, "city", "cities");
+    case "country": return pluralize(n, "country", "countries");
+    case "region": return pluralize(n, "region");
+    case "continent": return pluralize(n, "continent");
+    default: return pluralize(n, "place");
+  }
+}
+
+/**
+ * Collapse consecutive events from the same user in the same country/level into
+ * one row ("Omar added 6 cities in Pakistan · 2d") instead of six identical rows.
+ * Feed arrives newest-first, so the first item of a burst carries the timestamp.
+ */
+function collapseFeed(items: FeedItem[]): FeedGroup[] {
+  const groups: FeedGroup[] = [];
+  for (const f of items) {
+    const last = groups[groups.length - 1];
+    if (
+      last &&
+      last.displayName === f.displayName &&
+      last.countryName === f.countryName &&
+      last.placeLevel === f.placeLevel
+    ) {
+      last.count += 1;
+    } else {
+      groups.push({
+        key: `${f.id}`,
+        displayName: f.displayName,
+        handle: f.handle,
+        count: 1,
+        placeName: f.placeName,
+        placeLevel: f.placeLevel,
+        countryName: f.countryName,
+        createdAt: f.createdAt,
+      });
+    }
+  }
+  return groups;
+}
+
 function Feed({ items, L }: { items: FeedItem[] | null; L: ReturnType<typeof useLayout> }) {
   const tc = useAppColors();
   const styles = useMemo(() => makeStyles(tc), [tc]);
+  const groups = useMemo(() => (items ? collapseFeed(items) : []), [items]);
   if (items == null) return <ActivityIndicator color={tc.mint} />;
   if (items.length === 0) return <Text variant="body" style={styles.dim}>No activity yet. Follow people to see their trips.</Text>;
   return (
     <>
-      {items.map((f) => (
-        <View key={f.id} style={[styles.row, { minHeight: L.listRow }]}>
-          <View style={styles.avatar}>
-            <Text variant="body" style={styles.avatarText}>{f.handle[0].toUpperCase()}</Text>
+      {groups.map((g) => {
+        const when = relativeTime(g.createdAt);
+        return (
+          <View key={g.key} style={[styles.row, { minHeight: L.listRow }]}>
+            <View style={styles.avatar}>
+              <Text variant="body" style={styles.avatarText}>{g.handle[0].toUpperCase()}</Text>
+            </View>
+            <View style={styles.rowMain}>
+              <Text variant="body" numberOfLines={1} style={styles.rowText}>
+                <Text variant="body" style={styles.bold}>{g.displayName}</Text>
+                {g.count > 1
+                  ? ` added ${levelCount(g.count, g.placeLevel)}${g.countryName ? ` in ${g.countryName}` : ""}`
+                  : ` · ${g.placeName}`}
+              </Text>
+              <Text variant="body" numberOfLines={1} style={styles.rowSub}>
+                {(g.count > 1 ? "" : `${g.countryName ?? g.placeLevel}`)}
+                {when ? `${g.count > 1 ? "" : " · "}${when}` : ""}
+              </Text>
+            </View>
           </View>
-          <View style={styles.rowMain}>
-            <Text variant="body" numberOfLines={1} style={styles.rowText}>
-              <Text variant="body" style={styles.bold}>{f.displayName}</Text> · {f.placeName}
-            </Text>
-            <Text variant="body" numberOfLines={1} style={styles.rowSub}>
-              {f.countryName ?? f.placeLevel}
-            </Text>
-          </View>
-        </View>
-      ))}
+        );
+      })}
     </>
   );
 }
@@ -152,7 +215,7 @@ function Board({ rows, L }: { rows: LeaderRow[] | null; L: ReturnType<typeof use
               {r.displayName}{r.isMe ? " (you)" : ""}
             </Text>
             <Text variant="body" style={styles.rowSub}>
-              {r.regions} regions · {r.cities} cities
+              {pluralize(r.regions, "region")} · {pluralize(r.cities, "city", "cities")}
             </Text>
           </View>
           <Text variant="hero" style={styles.count}>{r.countries}</Text>
@@ -184,7 +247,7 @@ function Friends({
           </View>
           <View style={styles.rowMain}>
             <Text variant="body" numberOfLines={1} style={styles.rowText}>{p.displayName}</Text>
-            <Text variant="body" style={styles.rowSub}>{p.countries} countries</Text>
+            <Text variant="body" style={styles.rowSub}>{pluralize(p.countries, "country", "countries")}</Text>
           </View>
           <Pressable onPress={() => onCompare(p.id)} style={styles.compareBtn}>
             <Text variant="body" style={styles.compareText}>Compare</Text>
@@ -242,10 +305,10 @@ function CompareModal({ userId, onClose }: { userId: string | null; onClose: () 
               <Legend color={tc.textDim} label={`Only them · ${data.onlyThem.length}`} />
             </View>
             <Text variant="body" style={styles.compareLine}>
-              You’ve both been to {data.both.length} countries.
+              You’ve both been to {pluralize(data.both.length, "country", "countries")}.
             </Text>
             <Text variant="body" style={styles.compareLine}>
-              {data.otherName} has been to {data.onlyThem.length} you haven’t.
+              {data.otherName} has been to {pluralize(data.onlyThem.length, "country", "countries")} you haven’t.
             </Text>
           </ScrollView>
         )}

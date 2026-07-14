@@ -57,6 +57,7 @@ export {
 } from "./queries-tags";
 export {
   getTrips,
+  getUserVisits,
   getUngroupedVisits,
   getTripDetail,
   createTrip,

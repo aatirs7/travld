@@ -147,8 +147,10 @@ function Tile({ value, label }: { value: number | string; label: string }) {
   const styles = useMemo(() => makeStyles(tc), [tc]);
   return (
     <View style={styles.tile}>
-      <Text variant="hero" style={styles.tileValue}>{value}</Text>
-      <Text variant="hero" style={styles.tileLabel}>{label.toUpperCase()}</Text>
+      <Text variant="hero" style={styles.tileValue} numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </Text>
+      <Text variant="hero" style={styles.tileLabel} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -204,9 +206,9 @@ const makeStyles = (tc: ThemeColors) => StyleSheet.create({
   h1: { fontSize: 28, fontWeight: "700", color: tc.textPrimary },
   section: { fontSize: 20, fontWeight: "700", color: tc.textPrimary, textAlign: "center" },
   tiles: { flexDirection: "row", gap: spacing.sm },
-  tile: { flex: 1, backgroundColor: tc.surface, borderRadius: radius.card, padding: spacing.md, alignItems: "center", gap: spacing.xs },
+  tile: { flex: 1, minWidth: 0, backgroundColor: tc.surface, borderRadius: radius.card, padding: spacing.md, alignItems: "center", gap: spacing.xs },
   tileValue: { color: tc.mint, fontSize: 28, fontWeight: "700" },
-  tileLabel: { color: tc.textDim, fontSize: 11, letterSpacing: 0.5 },
+  tileLabel: { color: tc.textDim, fontSize: 11 },
   barRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   barLabel: { color: tc.textPrimary, fontSize: 14, width: 96 },
   barTrack: { flex: 1, height: 12, backgroundColor: tc.surfaceAlt, borderRadius: 6, overflow: "hidden" },

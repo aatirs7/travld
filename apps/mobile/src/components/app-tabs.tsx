@@ -9,7 +9,10 @@ export default function AppTabs() {
       blurEffect="none"
       disableTransparentOnScrollEdge
       indicatorColor={tc.surfaceAlt}
-      labelStyle={{ selected: { color: tc.mint } }}>
+      // Active tab = mint (icon AND label). Without an explicit iconColor the
+      // template icons fall back to the iOS system blue — the §1.1 bug.
+      iconColor={{ default: tc.textDim, selected: tc.mint }}
+      labelStyle={{ default: { color: tc.textDim }, selected: { color: tc.mint } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

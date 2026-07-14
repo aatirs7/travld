@@ -1,4 +1,4 @@
-import type { EnrichedVisit } from "@travld/core";
+import { type EnrichedVisit, pluralize } from "@travld/core";
 import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
 import { useAppColors } from "@/lib/app-theme";
 import { useFocusEffect } from "expo-router";
@@ -101,7 +101,7 @@ export default function TripsScreen() {
                 {formatRange(t.startDate, t.endDate)}
               </Text>
               <Text variant="body" style={styles.tripCounts}>
-                {t.countryCount} countries · {t.stopCount} stops
+                {pluralize(t.countryCount, "country", "countries")} · {pluralize(t.stopCount, "stop")}
                 {t.companions.length > 0 ? `  ·  ${t.companions.map((c) => `@${c}`).join(" ")}` : ""}
               </Text>
             </Pressable>
