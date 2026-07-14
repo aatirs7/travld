@@ -118,15 +118,9 @@ export default function MapScreen() {
     [visited, nameByIso2],
   );
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.center]}>
-        <StatusBar style="light" />
-        <ActivityIndicator color={colors.mint} />
-      </View>
-    );
-  }
-
+  // NB: never gate the whole screen on the API. The passport map is a local
+  // asset and must render immediately (grey world) even offline / before the
+  // backend responds; visited fills + counts populate once data loads.
   return (
     <View style={styles.container}>
       <StatusBar style="light" />

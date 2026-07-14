@@ -6,8 +6,20 @@ import { BASE_URL } from "./config";
  * persisted to MMKV and replayed on reconnect. Reads are never queued.
  * See the open-items note in the spec: "visits created without signal must sync."
  */
-const storage = createMMKV({ id: "travld-offline-queue" });
 const KEY = "pending";
+
+// Lazy: don't touch the native module at import time, so a storage init issue
+// can never crash app startup — the queue just degrades to a no-op.
+let _storage: ReturnType<typeof createMMKV> | null = null;
+function store(): ReturnType<typeof createMMKV> | null {
+  if (_storage) return _storage;
+  try {
+    _storage = createMMKV({ id: "travld-offline-queue" });
+  } catch {
+    _storage = null;
+  }
+  return _storage;
+}
 
 export interface QueuedRequest {
   method: string;
@@ -20,7 +32,7 @@ type Listener = (count: number) => void;
 const listeners = new Set<Listener>();
 
 function read(): QueuedRequest[] {
-  const s = storage.getString(KEY);
+  const s = store()?.getString(KEY);
   if (!s) return [];
   try {
     return JSON.parse(s) as QueuedRequest[];
@@ -30,7 +42,7 @@ function read(): QueuedRequest[] {
 }
 
 function write(q: QueuedRequest[]): void {
-  storage.set(KEY, JSON.stringify(q));
+  store()?.set(KEY, JSON.stringify(q));
   for (const l of listeners) l(q.length);
 }
 
