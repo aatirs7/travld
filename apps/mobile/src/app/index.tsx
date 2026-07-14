@@ -1,6 +1,7 @@
 import { percentOfWorld, UN_COUNTRY_DENOMINATOR } from "@travld/core";
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
 import * as Haptics from "expo-haptics";
+import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
 import * as Sharing from "expo-sharing";
 import { StatusBar } from "expo-status-bar";
@@ -149,7 +150,13 @@ export default function MapScreen() {
               <Text variant="hero" style={styles.headerIcon}>◎</Text>
             </Pressable>
           </View>
-          <Text variant="hero" style={styles.wordmark}>travld</Text>
+          <View style={styles.wordmarkWrap}>
+            <Image
+              source={require("@/assets/images/travld-logo.png")}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          </View>
           <View style={[styles.headerSide, styles.headerSideRight]}>
             <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={styles.headerBtn}>
               <Text variant="hero" style={styles.headerIconDim}>?</Text>
@@ -297,7 +304,8 @@ const styles = StyleSheet.create({
   headerBtn: { width: 40, alignItems: "center" },
   headerIcon: { color: colors.mint, fontSize: 24 },
   headerIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
-  wordmark: { color: colors.mint, fontSize: 22, fontWeight: "200", letterSpacing: 6, textAlign: "center", flex: 1 },
+  wordmarkWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
+  logo: { width: 150, height: 48 },
   error: { color: "#FF6B6B", textAlign: "center", paddingHorizontal: spacing.md },
   shareCard: { backgroundColor: colors.bg, gap: spacing.sm },
   dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: spacing.xs },
@@ -328,7 +336,7 @@ const styles = StyleSheet.create({
     borderColor: colors.mint,
   },
   shareText: { color: colors.mint, fontWeight: "600" },
-  sectionTitle: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
+  sectionTitle: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
   countryChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -336,9 +344,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   countryChipText: { color: colors.textPrimary, fontSize: 14 },
-  empty: { color: colors.textDim },
+  empty: { color: colors.textDim, textAlign: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
-  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
+  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
   chevron: { color: colors.textDim, fontSize: 22 },
 });

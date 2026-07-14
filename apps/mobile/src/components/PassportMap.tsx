@@ -7,10 +7,15 @@ import world from "../../assets/maps/world-countries-simplified.json";
 type WorldMap = {
   width: number;
   height: number;
+  viewBox?: number[];
   countries: { iso: string; name: string | null; d: string }[];
 };
 
 const WORLD = world as WorldMap;
+// Tight land bounds (falls back to full frame). Rendered with "slice" so the
+// land fills the container edge-to-edge — bigger and seamless, no ocean margin.
+const VB = WORLD.viewBox ?? [0, 0, WORLD.width, WORLD.height];
+const VIEWBOX = VB.join(" ");
 
 interface Props {
   /** ISO2 codes of visited countries. */
@@ -60,14 +65,14 @@ export function PassportMap({
   );
 
   return (
-    <View style={[{ width: "100%" }, style]}>
+    <View style={[{ width: "100%", aspectRatio: 1.55 }, style]}>
       <Svg
         width="100%"
-        viewBox={`0 0 ${WORLD.width} ${WORLD.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ aspectRatio: WORLD.width / WORLD.height }}
+        height="100%"
+        viewBox={VIEWBOX}
+        preserveAspectRatio="xMidYMid slice"
       >
-        <Rect x={0} y={0} width={WORLD.width} height={WORLD.height} fill={theme.water} />
+        <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={theme.water} />
         {paths.map((c) => (
           <Path
             key={c.iso}

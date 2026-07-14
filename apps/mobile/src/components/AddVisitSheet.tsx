@@ -10,7 +10,21 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, type SearchResult, type TripListItem, type UserSearchRow } from "@/lib/api";
+import { api, type CountryRow, type SearchResult, type TripListItem, type UserSearchRow } from "@/lib/api";
+
+// browse a country without typing → treat it as a place to add
+function countryToResult(c: CountryRow): SearchResult {
+  return {
+    id: c.id,
+    name: c.name,
+    level: "country",
+    displayType: null,
+    countryName: null,
+    countryIso2: c.iso2,
+    lat: null,
+    lng: null,
+  };
+}
 
 const PURPOSES = ["leisure", "lived", "work", "transit", "layover"] as const;
 type Purpose = (typeof PURPOSES)[number];
@@ -37,11 +51,15 @@ export function AddVisitSheet({
   const [tagged, setTagged] = useState<UserSearchRow[]>([]);
   const [userQ, setUserQ] = useState("");
   const [userResults, setUserResults] = useState<UserSearchRow[]>([]);
+  const [allCountries, setAllCountries] = useState<CountryRow[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (visible) api.getTrips().then((r) => setTrips(r.trips)).catch(() => {});
-    else {
+    if (visible) {
+      api.getTrips().then((r) => setTrips(r.trips)).catch(() => {});
+      if (allCountries.length === 0)
+        api.listCountries().then((r) => setAllCountries(r.countries)).catch(() => {});
+    } else {
       setQ("");
       setResults([]);
       setPlace(null);
@@ -130,26 +148,43 @@ export function AddVisitSheet({
                 <TextInput
                   value={q}
                   onChangeText={setQ}
-                  placeholder="Search a place…"
+                  placeholder="Search cities, states, countries…"
                   placeholderTextColor={colors.textDim}
                   style={styles.input}
-                  autoFocus
                   autoCorrect={false}
                   maxFontSizeMultiplier={1.3}
                 />
                 {searching && <ActivityIndicator color={colors.mint} />}
               </View>
-              {results.map((r) => (
-                <Pressable key={r.id} onPress={() => setPlace(r)} style={[styles.row, { minHeight: L.listRow }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="body" numberOfLines={1} style={styles.rowText}>{r.name}</Text>
-                    <Text variant="body" numberOfLines={1} style={styles.rowSub}>
-                      {[r.displayType ?? r.level, r.countryName].filter(Boolean).join(" · ")}
-                    </Text>
-                  </View>
-                  <Text variant="body" style={styles.plus}>+</Text>
-                </Pressable>
-              ))}
+
+              {q.trim().length < 2 ? (
+                // browse: pick a country from the list (no typing needed)
+                <>
+                  <Text variant="hero" style={styles.browseLabel}>ALL COUNTRIES</Text>
+                  {allCountries.map((c) => (
+                    <Pressable
+                      key={c.id}
+                      onPress={() => setPlace(countryToResult(c))}
+                      style={[styles.row, { minHeight: L.listRow }]}
+                    >
+                      <Text variant="body" numberOfLines={1} style={styles.rowText}>{c.name}</Text>
+                      <Text variant="body" style={styles.plus}>+</Text>
+                    </Pressable>
+                  ))}
+                </>
+              ) : (
+                results.map((r) => (
+                  <Pressable key={r.id} onPress={() => setPlace(r)} style={[styles.row, { minHeight: L.listRow }]}>
+                    <View style={{ flex: 1 }}>
+                      <Text variant="body" numberOfLines={1} style={styles.rowText}>{r.name}</Text>
+                      <Text variant="body" numberOfLines={1} style={styles.rowSub}>
+                        {[r.displayType ?? r.level, r.countryName].filter(Boolean).join(" · ")}
+                      </Text>
+                    </View>
+                    <Text variant="body" style={styles.plus}>+</Text>
+                  </Pressable>
+                ))
+              )}
             </>
           ) : (
             <>
@@ -255,6 +290,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowText: { color: colors.textPrimary, fontSize: 16 },
   rowSub: { color: colors.textDim, fontSize: 13 },
+  browseLabel: { color: colors.textDim, fontSize: 12, letterSpacing: 1, marginTop: spacing.sm },
   plus: { color: colors.mint, fontSize: 24, fontWeight: "300", paddingHorizontal: spacing.sm },
   selected: { fontSize: 24, fontWeight: "700", color: colors.textPrimary },
   dim: { color: colors.textDim },

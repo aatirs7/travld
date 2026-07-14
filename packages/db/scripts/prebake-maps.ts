@@ -87,10 +87,24 @@ async function bakeWorld() {
     })
     .filter((x): x is { iso: string; name: string | null; d: string } => x != null);
 
+  // Tight viewBox around the actual landmass (minus far-flung island outliers)
+  // so the map fills the frame instead of floating in empty ocean.
+  const b = (path as any).bounds(fc) as [[number, number], [number, number]];
+  const padX = (b[1][0] - b[0][0]) * 0.01;
+  const padY = (b[1][1] - b[0][1]) * 0.03;
+  const viewBox = [
+    Math.round((b[0][0] - padX) * 10) / 10,
+    Math.round((b[0][1] - padY) * 10) / 10,
+    Math.round((b[1][0] - b[0][0] + padX * 2) * 10) / 10,
+    Math.round((b[1][1] - b[0][1] + padY * 2) * 10) / 10,
+  ];
+
   await mkdir(MOBILE_MAPS, { recursive: true });
-  const out = { projection: "robinson", width: WORLD_W, height: WORLD_H, countries };
+  const out = { projection: "robinson", width: WORLD_W, height: WORLD_H, viewBox, countries };
   await writeFile(resolve(MOBILE_MAPS, "world-countries-simplified.json"), JSON.stringify(out));
-  console.log(`✓ world: ${countries.length} countries → assets/maps/world-countries-simplified.json`);
+  console.log(
+    `✓ world: ${countries.length} countries, viewBox ${viewBox.join(" ")} → assets/maps/world-countries-simplified.json`,
+  );
 }
 
 async function bakeAdmin1() {
