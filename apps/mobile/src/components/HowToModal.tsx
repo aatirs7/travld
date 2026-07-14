@@ -1,78 +1,106 @@
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { SymbolView, type SFSymbol } from "expo-symbols";
+import { useState } from "react";
+import { Modal, Pressable, StyleSheet, View } from "react-native";
 
-const STEPS: { icon: string; title: string; body: string }[] = [
+const STEPS: { icon: SFSymbol; title: string; body: string }[] = [
   {
-    icon: "🗺️",
+    icon: "globe.americas.fill",
     title: "Mark countries",
     body: "Tap any country on the map to mark it visited. Tap again to unmark.",
   },
   {
-    icon: "📍",
-    title: "States, cities & more",
-    body: "Tap a country in “My Countries” to open it, then use the States and Cities tabs — tap a state or city to mark it. Or hit ＋ and search any place to add it.",
+    icon: "mappin.and.ellipse",
+    title: "States & cities",
+    body: "Tap a country in “My Countries”, then use the States and Cities tabs to mark them — or hit ＋ to search any place.",
   },
   {
-    icon: "🧳",
+    icon: "suitcase.fill",
     title: "Trips",
-    body: "Group visits into named trips. When you add a place, pick a trip (or make a new one). See routes, stats, and companions per trip.",
+    body: "Group visits into named trips with routes, dates and companions.",
   },
   {
-    icon: "👥",
+    icon: "person.2.fill",
     title: "Friends & compare",
-    body: "Follow people, see their trips in your feed, climb the leaderboard, and open Compare to overlay your maps.",
+    body: "Follow people, see their trips, and overlay your maps in Compare.",
   },
   {
-    icon: "📊",
+    icon: "chart.bar.fill",
     title: "Stats",
-    body: "Your travel broken down by continent, purpose, distance from home, and over time.",
+    body: "Your travel by continent, purpose, distance and over time.",
   },
 ];
 
 export function HowToModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const L = useLayout();
+  const [step, setStep] = useState(0);
+  const s = STEPS[step]!;
+  const last = step === STEPS.length - 1;
+  const cardW = Math.min(L.width - spacing.xl * 2, 360);
+
+  const next = () => (last ? (setStep(0), onClose()) : setStep((i) => i + 1));
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={styles.container}>
-        <ScrollView
-          contentContainerStyle={{
-            paddingTop: L.insets.top + spacing.xl,
-            paddingHorizontal: L.gutter,
-            paddingBottom: L.insets.bottom + spacing.xl,
-            gap: spacing.lg,
-          }}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text variant="hero" style={styles.wordmark}>travld</Text>
-          <Text variant="hero" style={styles.title}>How it works</Text>
-
-          {STEPS.map((s) => (
-            <View key={s.title} style={styles.step}>
-              <Text variant="body" style={styles.icon}>{s.icon}</Text>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text variant="body" style={styles.stepTitle}>{s.title}</Text>
-                <Text variant="body" style={styles.stepBody}>{s.body}</Text>
-              </View>
-            </View>
-          ))}
-
-          <Pressable onPress={onClose} style={styles.cta}>
-            <Text variant="body" style={styles.ctaText}>Got it</Text>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
+        <View style={[styles.card, { width: cardW }]}>
+          <Pressable onPress={onClose} hitSlop={12} style={styles.skip}>
+            <Text variant="body" style={styles.skipText}>Skip</Text>
           </Pressable>
-        </ScrollView>
+
+          <View style={styles.iconWrap}>
+            <SymbolView name={s.icon} size={44} tintColor={colors.mint} resizeMode="scaleAspectFit" />
+          </View>
+          <Text variant="hero" style={styles.title}>{s.title}</Text>
+          <Text variant="body" style={styles.body}>{s.body}</Text>
+
+          <View style={styles.dots}>
+            {STEPS.map((_, i) => (
+              <View key={i} style={[styles.dot, i === step && styles.dotActive]} />
+            ))}
+          </View>
+
+          <Pressable onPress={next} style={styles.cta}>
+            <Text variant="body" style={styles.ctaText}>{last ? "Got it" : "Next"}</Text>
+          </Pressable>
+        </View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  wordmark: { color: colors.mint, fontSize: 22, fontWeight: "200", letterSpacing: 6, textAlign: "center" },
-  title: { color: colors.textPrimary, fontSize: 26, fontWeight: "700", textAlign: "center" },
-  step: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start", backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md },
-  icon: { fontSize: 26 },
-  stepTitle: { color: colors.textPrimary, fontSize: 17, fontWeight: "700" },
-  stepBody: { color: colors.textDim, fontSize: 15, lineHeight: 21 },
-  cta: { alignSelf: "center", paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: colors.mint, marginTop: spacing.sm },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", alignItems: "center", justifyContent: "center" },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 24,
+    padding: spacing.xl,
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  skip: { position: "absolute", top: spacing.md, right: spacing.md },
+  skipText: { color: colors.textDim, fontSize: 14 },
+  iconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.sm,
+  },
+  title: { color: colors.textPrimary, fontSize: 22, fontWeight: "700", textAlign: "center" },
+  body: { color: colors.textDim, fontSize: 15, lineHeight: 21, textAlign: "center", minHeight: 64 },
+  dots: { flexDirection: "row", gap: 6, marginTop: spacing.xs },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.grey },
+  dotActive: { backgroundColor: colors.mint, width: 20 },
+  cta: {
+    alignSelf: "stretch",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: colors.mint,
+    marginTop: spacing.sm,
+  },
   ctaText: { color: colors.bg, fontWeight: "700", fontSize: 16 },
 });

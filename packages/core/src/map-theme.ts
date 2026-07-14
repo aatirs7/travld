@@ -11,11 +11,12 @@ export interface MapTheme {
   partial: string;
 }
 
-/** Brand default (mint on black). */
+/** Brand default (mint on black). Water = pure black so the map is seamless
+ *  against the page background (like Been), with no visible map "box". */
 export const defaultMapTheme: MapTheme = {
   visited: "#00E08F",
   land: "#303032",
-  water: "#0A0A0A",
+  water: "#000000",
   partial: "#0A7D52",
 };
 
@@ -31,17 +32,17 @@ export const mapThemePresets: MapThemePreset[] = [
   {
     id: "amber",
     name: "Amber",
-    theme: { visited: "#FF9F0A", land: "#3A3A3C", water: "#0A0A0A", partial: "#B36F07" },
+    theme: { visited: "#FF9F0A", land: "#3A3A3C", water: "#000000", partial: "#B36F07" },
   },
   {
     id: "ice",
     name: "Ice",
-    theme: { visited: "#4EA8FF", land: "#2A2E33", water: "#080B0F", partial: "#2E5C8A" },
+    theme: { visited: "#4EA8FF", land: "#2A2E33", water: "#000000", partial: "#2E5C8A" },
   },
   {
     id: "rose",
     name: "Rose",
-    theme: { visited: "#FF5D8F", land: "#332A2E", water: "#0C0709", partial: "#8A3355" },
+    theme: { visited: "#FF5D8F", land: "#332A2E", water: "#000000", partial: "#8A3355" },
   },
   {
     id: "mono",
@@ -51,7 +52,7 @@ export const mapThemePresets: MapThemePreset[] = [
   {
     id: "violet",
     name: "Violet",
-    theme: { visited: "#B18CFF", land: "#2C2A33", water: "#09070C", partial: "#5E4E8A" },
+    theme: { visited: "#B18CFF", land: "#2C2A33", water: "#000000", partial: "#5E4E8A" },
   },
 ];
 

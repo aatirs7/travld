@@ -39,6 +39,6 @@ export function useLayout() {
     listRow: pick({ sm: 52, md: 56, lg: 60 }),
 
     /** paddingBottom for scroll content so the tab bar never hides the last row. */
-    scrollPadBottom: insets.bottom + TAB_BAR_HEIGHT + 24,
+    scrollPadBottom: insets.bottom + TAB_BAR_HEIGHT + 40,
   };
 }
