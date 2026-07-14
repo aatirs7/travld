@@ -63,7 +63,15 @@ function simplifyFC(fc: FC, retain: number): FC {
 
 async function bakeWorld() {
   const raw = await loadFC("ne_admin0_countries.geojson");
-  const fc = simplifyFC(raw, 0.3);
+  // Drop Antarctica — Been doesn't show it, and it letterboxes the projection
+  // with an ugly grey blob. Removing it also lets the map fill the frame.
+  raw.features = raw.features.filter(
+    (f) =>
+      prop(f.properties, "CONTINENT") !== "Antarctica" &&
+      prop(f.properties, "ISO_A2_EH", "ISO_A2") !== "AQ",
+  );
+  // Higher retain = smoother coastlines (closer to Been). Still OTA-sized.
+  const fc = simplifyFC(raw, 0.55);
   const projection = geoRobinson().fitSize([WORLD_W, WORLD_H], fc as any);
   const path = geoPath(projection);
   // round coordinates for a smaller payload
