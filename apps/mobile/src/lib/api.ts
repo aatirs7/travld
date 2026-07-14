@@ -1,4 +1,4 @@
-import type { MapTheme } from "@travld/core";
+import type { DerivedTrip, EnrichedVisit, MapTheme, RoutePoint } from "@travld/core";
 
 // Thin client for the travld API (apps/web). No auth yet — the server runs
 // everything as the dev user until the auth phase.
@@ -171,6 +171,7 @@ export const api = {
     departedAt?: string | null;
     purpose?: "lived" | "work" | "leisure" | "transit" | "layover";
     note?: string | null;
+    tripId?: number | null;
   }) => json<VisitedSummary>("/api/visits", { method: "POST", body: JSON.stringify(input) }),
   getRegionProgress: () => json<{ progress: RegionProgress }>("/api/me/region-progress"),
   getPins: () => json<{ pins: Pin[] }>("/api/me/pins"),
@@ -196,7 +197,38 @@ export const api = {
 
   // Phase 4 — visualize
   getStats: () => json<VisualizeStats>("/api/me/stats"),
+
+  // Trips
+  getTrips: () => json<{ trips: TripListItem[] }>("/api/trips"),
+  getUngrouped: () => json<{ visits: EnrichedVisit[] }>("/api/trips/ungrouped"),
+  getTrip: (id: number) => json<TripDetail>(`/api/trips/${id}`),
+  createTrip: (title: string, startDate?: string | null, endDate?: string | null) =>
+    json<{ id: number }>("/api/trips", {
+      method: "POST",
+      body: JSON.stringify({ title, startDate, endDate }),
+    }),
+  updateTrip: (id: number, patch: { title?: string; startDate?: string | null; endDate?: string | null }) =>
+    json<{ ok: boolean }>(`/api/trips/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteTrip: (id: number) => json<{ ok: boolean }>(`/api/trips/${id}`, { method: "DELETE" }),
+  setVisitTrip: (visitId: number, tripId: number | null) =>
+    json<{ ok: boolean }>(`/api/visits/${visitId}/trip`, {
+      method: "POST",
+      body: JSON.stringify({ tripId }),
+    }),
 };
+
+export interface TripListItem extends DerivedTrip {
+  companions: string[];
+  hasFirstVisit: boolean;
+}
+
+export interface TripDetail {
+  trip: DerivedTrip;
+  visits: EnrichedVisit[];
+  route: RoutePoint[];
+  companions: string[];
+  distanceKm: number;
+}
 
 export interface VisualizeStats {
   totals: { countries: number; regions: number; cities: number };

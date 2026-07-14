@@ -15,6 +15,7 @@ export async function POST(req: Request) {
     departedAt: body.departedAt ?? null,
     purpose: body.purpose,
     note: body.note ?? null,
+    tripId: body.tripId ?? null,
   });
   return Response.json(summary);
 }

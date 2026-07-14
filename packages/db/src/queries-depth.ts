@@ -225,6 +225,7 @@ export interface CreateVisitInput {
   departedAt?: string | null;
   purpose?: "lived" | "work" | "leisure" | "transit" | "layover";
   note?: string | null;
+  tripId?: number | null;
 }
 
 export async function createVisit(
@@ -234,11 +235,11 @@ export async function createVisit(
   const { db: wdb, pool } = await createPool();
   try {
     await wdb.execute(sql`
-      INSERT INTO visits (user_id, place_id, arrived_at, departed_at, purpose, note)
+      INSERT INTO visits (user_id, place_id, arrived_at, departed_at, purpose, note, trip_id)
       VALUES (
         ${userId}, ${input.placeId},
         ${input.arrivedAt ?? null}, ${input.departedAt ?? null},
-        ${input.purpose ?? "leisure"}, ${input.note ?? null}
+        ${input.purpose ?? "leisure"}, ${input.note ?? null}, ${input.tripId ?? null}
       )
     `);
     await recomputeUserPlaceStats(wdb, userId);

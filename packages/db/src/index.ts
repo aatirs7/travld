@@ -46,3 +46,14 @@ export {
   type CompareResult,
 } from "./queries-social";
 export { getVisualizeStats, type VisualizeStats } from "./queries-viz";
+export {
+  getTrips,
+  getUngroupedVisits,
+  getTripDetail,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+  setVisitTrip,
+  type TripListItem,
+  type TripDetail,
+} from "./queries-trips";

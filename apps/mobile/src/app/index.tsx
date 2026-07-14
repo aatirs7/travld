@@ -7,7 +7,9 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { captureRef } from "react-native-view-shot";
+import { AddVisitSheet } from "@/components/AddVisitSheet";
 import { CountryDetailSheet } from "@/components/CountryDetailSheet";
+import { ExploreMapModal } from "@/components/ExploreMapModal";
 import { PassportMap } from "@/components/PassportMap";
 import { api, type CountryRow, type RegionProgress } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
@@ -22,6 +24,8 @@ export default function MapScreen() {
   const [error, setError] = useState<string | null>(null);
   const cardRef = useRef<View>(null);
   const [selectedIso2, setSelectedIso2] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
   const [mapVariant, setMapVariant] = useState<MapVariant>("world");
   const [regionProgress, setRegionProgress] = useState<RegionProgress | null>(null);
   const { theme } = useMapTheme();
@@ -135,9 +139,17 @@ export default function MapScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text variant="hero" style={styles.wordmark}>
-          travld
-        </Text>
+        <View style={styles.header}>
+          <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.headerBtn}>
+            <Text variant="hero" style={styles.headerIcon}>◎</Text>
+          </Pressable>
+          <Text variant="hero" style={styles.wordmark}>
+            travld
+          </Text>
+          <Pressable onPress={() => setShowAdd(true)} hitSlop={12} style={styles.headerBtn}>
+            <Text variant="hero" style={styles.headerIcon}>＋</Text>
+          </Pressable>
+        </View>
 
         {error && (
           <Text variant="body" style={styles.error}>
@@ -223,6 +235,8 @@ export default function MapScreen() {
         onClose={() => setSelectedIso2(null)}
         onChanged={refreshVisited}
       />
+      <ExploreMapModal visible={showMap} onClose={() => setShowMap(false)} />
+      <AddVisitSheet visible={showAdd} onClose={() => setShowAdd(false)} onSaved={refreshVisited} />
     </View>
   );
 }
@@ -230,12 +244,16 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { alignItems: "center", justifyContent: "center" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerBtn: { width: 40, alignItems: "center" },
+  headerIcon: { color: colors.mint, fontSize: 24 },
   wordmark: {
     color: colors.mint,
     fontSize: 22,
     fontWeight: "200",
     letterSpacing: 6,
     textAlign: "center",
+    flex: 1,
   },
   error: { color: "#FF6B6B", textAlign: "center" },
   card: { backgroundColor: colors.bg, gap: spacing.md },

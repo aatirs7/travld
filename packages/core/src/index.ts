@@ -110,6 +110,7 @@ export function citiesVisited(
 }
 
 export * from "./map-theme";
+export * from "./trips";
 
 export function percentOfWorld(
   countryCount: number,
