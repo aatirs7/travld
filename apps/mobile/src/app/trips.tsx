@@ -1,8 +1,9 @@
 import type { EnrichedVisit } from "@travld/core";
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { TripDetailModal } from "@/components/TripDetailModal";
@@ -12,6 +13,8 @@ import { useMapTheme } from "@/lib/map-theme-context";
 export default function TripsScreen() {
   const L = useLayout();
   const { theme } = useMapTheme();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [trips, setTrips] = useState<TripListItem[] | null>(null);
   const [ungrouped, setUngrouped] = useState<EnrichedVisit[]>([]);
   const [openTrip, setOpenTrip] = useState<number | null>(null);
@@ -73,7 +76,7 @@ export default function TripsScreen() {
       />
 
       {trips == null ? (
-        <View style={styles.center}><ActivityIndicator color={colors.mint} /></View>
+        <View style={styles.center}><ActivityIndicator color={tc.mint} /></View>
       ) : (
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: L.gutter, paddingTop: spacing.md, paddingBottom: L.scrollPadBottom, gap: spacing.md }}
@@ -145,26 +148,26 @@ function formatRange(start: string | null, end: string | null): string {
   return s === e ? s : `${s} → ${e}`;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
-  newBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint },
-  newText: { color: colors.mint, fontWeight: "600" },
+  h1: { fontSize: 28, fontWeight: "700", color: tc.textPrimary },
+  newBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: tc.mint },
+  newText: { color: tc.mint, fontWeight: "600" },
   empty: { alignItems: "center", gap: spacing.md, paddingVertical: spacing.xl },
-  emptyTitle: { color: colors.textPrimary, fontSize: 18, textAlign: "center" },
-  cta: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: colors.mint },
-  ctaText: { color: colors.bg, fontWeight: "700" },
-  tripCard: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.xs },
+  emptyTitle: { color: tc.textPrimary, fontSize: 18, textAlign: "center" },
+  cta: { paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: tc.mint },
+  ctaText: { color: tc.bg, fontWeight: "700" },
+  tripCard: { backgroundColor: tc.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.xs },
   tripTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  tripTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: "700", flex: 1 },
+  tripTitle: { color: tc.textPrimary, fontSize: 18, fontWeight: "700", flex: 1 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  tripMeta: { color: colors.textDim, fontSize: 13 },
-  tripCounts: { color: colors.textPrimary, fontSize: 14 },
-  section: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, marginTop: spacing.sm, textAlign: "center" },
-  year: { color: colors.textDim, fontSize: 14, fontWeight: "700", marginTop: spacing.xs, textAlign: "center" },
+  tripMeta: { color: tc.textDim, fontSize: 13 },
+  tripCounts: { color: tc.textPrimary, fontSize: 14 },
+  section: { fontSize: 20, fontWeight: "700", color: tc.textPrimary, marginTop: spacing.sm, textAlign: "center" },
+  year: { color: tc.textDim, fontSize: 14, fontWeight: "700", marginTop: spacing.xs, textAlign: "center" },
   ungRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm },
-  ungName: { color: colors.textPrimary, fontSize: 16, flex: 1 },
-  ungAdd: { color: colors.mint, fontSize: 13, fontWeight: "600" },
+  ungName: { color: tc.textPrimary, fontSize: 16, flex: 1 },
+  ungAdd: { color: tc.mint, fontSize: 13, fontWeight: "600" },
 });

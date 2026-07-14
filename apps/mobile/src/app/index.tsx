@@ -1,5 +1,6 @@
 import { percentOfWorld, UN_COUNTRY_DENOMINATOR } from "@travld/core";
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
@@ -51,6 +52,8 @@ export default function MapScreen() {
   const [cAdmin1, setCAdmin1] = useState<Admin1Map | null>(null);
   const { theme } = useMapTheme();
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
 
   const refreshVisited = useCallback(async () => {
     const v = await api.getVisited();
@@ -184,11 +187,14 @@ export default function MapScreen() {
         contentContainerStyle={{ paddingTop: L.insets.top + spacing.sm, paddingBottom: L.scrollPadBottom, gap: L.sectionGap }}
         showsVerticalScrollIndicator={false}
       >
-        {/* action row */}
+        {/* header row: left tool · centered logo · right actions */}
         <View style={[styles.actionRow, { paddingHorizontal: L.gutter }]}>
-          <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.actionBtn}>
-            <Text variant="hero" style={styles.actionIcon}>◎</Text>
-          </Pressable>
+          <View style={styles.actionLeft}>
+            <Pressable onPress={() => setShowMap(true)} hitSlop={12} style={styles.actionBtn}>
+              <Text variant="hero" style={styles.actionIcon}>◎</Text>
+            </Pressable>
+          </View>
+          <Image source={require("@/assets/images/travld-logo.png")} style={styles.logo} contentFit="contain" />
           <View style={styles.actionRight}>
             <Pressable onPress={() => setShowHelp(true)} hitSlop={12} style={styles.actionBtn}>
               <Text variant="hero" style={styles.actionIconDim}>?</Text>
@@ -198,9 +204,6 @@ export default function MapScreen() {
             </Pressable>
           </View>
         </View>
-
-        {/* big logo */}
-        <Image source={require("@/assets/images/travld-logo.png")} style={styles.logo} contentFit="contain" />
 
         {error && <Text variant="body" style={styles.error}>{error}</Text>}
 
@@ -212,7 +215,11 @@ export default function MapScreen() {
                 <Text variant="body" style={styles.worldBackText}>‹ World</Text>
               </Pressable>
               <Text variant="hero" style={styles.countryName} numberOfLines={1}>{country.name}</Text>
-              <View style={styles.worldBack} />
+              <Pressable onPress={() => void handleToggle(country.iso2)} hitSlop={12} style={styles.visitedToggle}>
+                <Text variant="body" style={[styles.visitedToggleText, visited.has(country.iso2) && styles.visitedToggleOn]}>
+                  {visited.has(country.iso2) ? "Visited ✓" : "Mark"}
+                </Text>
+              </Pressable>
             </View>
 
             {cAdmin1 ? (
@@ -223,7 +230,7 @@ export default function MapScreen() {
                 }}
               />
             ) : (
-              <View style={styles.mapLoading}><ActivityIndicator color={colors.mint} /></View>
+              <View style={styles.mapLoading}><ActivityIndicator color={tc.mint} /></View>
             )}
 
             {cDetail && (
@@ -236,7 +243,7 @@ export default function MapScreen() {
             <View style={{ paddingHorizontal: L.gutter }}>
               {(cDetail?.regions ?? []).map((r) => (
                 <Pressable key={r.id} onPress={() => toggleRegion(r.id)} style={[styles.row, { minHeight: L.listRow }]}>
-                  <View style={[styles.rowDot, { backgroundColor: r.visited ? theme.visited : colors.grey }]} />
+                  <View style={[styles.rowDot, { backgroundColor: r.visited ? theme.visited : tc.grey }]} />
                   <Text variant="body" numberOfLines={1} style={styles.rowText}>{r.name}</Text>
                 </Pressable>
               ))}
@@ -248,7 +255,12 @@ export default function MapScreen() {
             <View ref={cardRef} collapsable={false} style={styles.shareCard}>
               <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onPage}>
                 <View style={{ width: L.width }}>
-                  <PassportMap visited={visited} onToggle={handleToggle} theme={theme} variant="world" />
+                  <PassportMap
+                    visited={visited}
+                    onToggle={(iso) => openCountry(iso, nameByIso2.get(iso) ?? iso)}
+                    theme={theme}
+                    variant="world"
+                  />
                 </View>
                 <View style={{ width: L.width }}>
                   <PassportMap visited={visited} theme={theme} variant="heatmap" regionProgress={regionProgress ?? undefined} />
@@ -283,7 +295,7 @@ export default function MapScreen() {
 
             <Text variant="hero" style={styles.sectionTitle}>My Countries</Text>
             {visitedList.length === 0 ? (
-              <Text variant="body" style={styles.empty}>Tap a country on the map to mark it visited.</Text>
+              <Text variant="body" style={styles.empty}>Tap a country on the map to open it — pinch to zoom. Mark it visited there or with ＋.</Text>
             ) : (
               <View style={{ paddingHorizontal: L.gutter }}>
                 {visitedList.map(({ iso, name }) => (
@@ -307,6 +319,7 @@ export default function MapScreen() {
 }
 
 function Ring({ frac, color }: { frac: number; color: string }) {
+  const tc = useAppColors();
   const size = 76;
   const stroke = 8;
   const r = (size - stroke) / 2;
@@ -314,7 +327,7 @@ function Ring({ frac, color }: { frac: number; color: string }) {
   const p = Math.max(0, Math.min(1, frac));
   return (
     <Svg width={size} height={size}>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke={colors.surfaceAlt} strokeWidth={stroke} fill="none" />
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={tc.surfaceAlt} strokeWidth={stroke} fill="none" />
       <Circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeWidth={stroke} fill="none"
         strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - p)}
         transform={`rotate(-90 ${size / 2} ${size / 2})`} />
@@ -322,44 +335,48 @@ function Ring({ frac, color }: { frac: number; color: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  actionRight: { flexDirection: "row" },
+  actionLeft: { width: 80, flexDirection: "row" },
+  actionRight: { flexDirection: "row", width: 80, justifyContent: "flex-end" },
   actionBtn: { width: 40, alignItems: "center" },
-  actionIcon: { color: colors.mint, fontSize: 24 },
-  actionIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
-  logo: { width: "82%", height: 96, alignSelf: "center", marginTop: -spacing.xs },
+  actionIcon: { color: tc.mint, fontSize: 24 },
+  actionIconDim: { color: tc.textDim, fontSize: 22, fontWeight: "700" },
+  logo: { flex: 1, height: 44, marginHorizontal: spacing.sm },
   error: { color: "#FF6B6B", textAlign: "center", paddingHorizontal: spacing.md },
-  shareCard: { backgroundColor: colors.bg, gap: spacing.sm },
+  shareCard: { backgroundColor: tc.bg, gap: spacing.sm },
   dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: spacing.xs },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.grey },
-  dotActive: { backgroundColor: colors.mint, width: 20 },
-  pageLabel: { color: colors.textDim, fontSize: 13, textAlign: "center", letterSpacing: 1 },
-  hint: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: tc.grey },
+  dotActive: { backgroundColor: tc.mint, width: 20 },
+  pageLabel: { color: tc.textDim, fontSize: 13, textAlign: "center", letterSpacing: 1 },
+  hint: { color: tc.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
   statCard: {
     flexDirection: "row", alignItems: "center", justifyContent: "space-between",
-    backgroundColor: colors.surface, borderRadius: radius.card,
+    backgroundColor: tc.surface, borderRadius: radius.card,
     paddingVertical: spacing.lg, paddingHorizontal: spacing.lg, marginTop: spacing.sm,
   },
   statCol: { alignItems: "center", gap: 2, minWidth: 84 },
-  statBig: { color: colors.mint, fontSize: 40, fontWeight: "800", letterSpacing: -1 },
-  statLabel: { color: colors.textDim, fontSize: 12, letterSpacing: 1 },
-  statSub: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
+  statBig: { color: tc.mint, fontSize: 40, fontWeight: "800", letterSpacing: -1 },
+  statLabel: { color: tc.textDim, fontSize: 12, letterSpacing: 1 },
+  statSub: { color: tc.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.xs },
   shareBtn: {
     alignSelf: "center", paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
-    borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint,
+    borderRadius: radius.pill, borderWidth: 1, borderColor: tc.mint,
   },
-  shareText: { color: colors.mint, fontWeight: "600" },
-  sectionTitle: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
-  empty: { color: colors.textDim, textAlign: "center", paddingHorizontal: spacing.md },
+  shareText: { color: tc.mint, fontWeight: "600" },
+  sectionTitle: { fontSize: 22, fontWeight: "700", color: tc.textPrimary, textAlign: "center" },
+  empty: { color: tc.textDim, textAlign: "center", paddingHorizontal: spacing.md },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  rowDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.mint },
-  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
-  chevron: { color: colors.textDim, fontSize: 22 },
+  rowDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: tc.mint },
+  rowText: { color: tc.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
+  chevron: { color: tc.textDim, fontSize: 22 },
   countryBar: { flexDirection: "row", alignItems: "center", paddingHorizontal: spacing.md },
   worldBack: { width: 72 },
-  worldBackText: { color: colors.mint, fontSize: 17, fontWeight: "600" },
-  countryName: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "700", color: colors.textPrimary },
+  worldBackText: { color: tc.mint, fontSize: 17, fontWeight: "600" },
+  visitedToggle: { width: 72, alignItems: "flex-end" },
+  visitedToggleText: { color: tc.textDim, fontSize: 15, fontWeight: "600" },
+  visitedToggleOn: { color: tc.mint },
+  countryName: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "700", color: tc.textPrimary },
   mapLoading: { height: 200, alignItems: "center", justifyContent: "center" },
 });

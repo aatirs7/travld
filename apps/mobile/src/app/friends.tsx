@@ -1,7 +1,8 @@
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { CompareMap } from "@/components/CompareMap";
 import { ScreenHeader } from "@/components/ScreenHeader";
@@ -21,6 +22,8 @@ const TAB_LABEL: Record<Tab, string> = { feed: "Feed", board: "Leaderboard", fri
 
 export default function FriendsScreen() {
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [tab, setTab] = useState<Tab>("feed");
   const [feed, setFeed] = useState<FeedItem[] | null>(null);
   const [board, setBoard] = useState<LeaderRow[] | null>(null);
@@ -110,7 +113,9 @@ export default function FriendsScreen() {
 }
 
 function Feed({ items, L }: { items: FeedItem[] | null; L: ReturnType<typeof useLayout> }) {
-  if (items == null) return <ActivityIndicator color={colors.mint} />;
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
+  if (items == null) return <ActivityIndicator color={tc.mint} />;
   if (items.length === 0) return <Text variant="body" style={styles.dim}>No activity yet. Follow people to see their trips.</Text>;
   return (
     <>
@@ -134,7 +139,9 @@ function Feed({ items, L }: { items: FeedItem[] | null; L: ReturnType<typeof use
 }
 
 function Board({ rows, L }: { rows: LeaderRow[] | null; L: ReturnType<typeof useLayout> }) {
-  if (rows == null) return <ActivityIndicator color={colors.mint} />;
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
+  if (rows == null) return <ActivityIndicator color={tc.mint} />;
   return (
     <>
       {rows.map((r, i) => (
@@ -164,7 +171,9 @@ function Friends({
   L: ReturnType<typeof useLayout>;
   onCompare: (id: string) => void;
 }) {
-  if (people == null) return <ActivityIndicator color={colors.mint} />;
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
+  if (people == null) return <ActivityIndicator color={tc.mint} />;
   if (people.length === 0) return <Text variant="body" style={styles.dim}>You’re not following anyone yet.</Text>;
   return (
     <>
@@ -189,6 +198,8 @@ function Friends({
 function CompareModal({ userId, onClose }: { userId: string | null; onClose: () => void }) {
   const L = useLayout();
   const { theme } = useMapTheme();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [data, setData] = useState<CompareResult | null>(null);
 
   const load = useCallback(async (id: string) => {
@@ -216,7 +227,7 @@ function CompareModal({ userId, onClose }: { userId: string | null; onClose: () 
           </Pressable>
         </View>
         {!data ? (
-          <View style={styles.center}><ActivityIndicator color={colors.mint} /></View>
+          <View style={styles.center}><ActivityIndicator color={tc.mint} /></View>
         ) : (
           <ScrollView contentContainerStyle={{ paddingHorizontal: L.gutter, paddingBottom: L.scrollPadBottom, gap: spacing.md }}>
             <CompareMap
@@ -228,7 +239,7 @@ function CompareModal({ userId, onClose }: { userId: string | null; onClose: () 
             <View style={styles.legend}>
               <Legend color={theme.visited} label={`Both · ${data.both.length}`} />
               <Legend color={theme.partial} label={`Only you · ${data.onlyMe.length}`} />
-              <Legend color={colors.textDim} label={`Only them · ${data.onlyThem.length}`} />
+              <Legend color={tc.textDim} label={`Only them · ${data.onlyThem.length}`} />
             </View>
             <Text variant="body" style={styles.compareLine}>
               You’ve both been to {data.both.length} countries.
@@ -244,6 +255,8 @@ function CompareModal({ userId, onClose }: { userId: string | null; onClose: () 
 }
 
 function Legend({ color, label }: { color: string; label: string }) {
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -252,42 +265,42 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary, flex: 1 },
-  segment: { flexDirection: "row", backgroundColor: colors.surface, borderRadius: radius.pill, padding: 3 },
+  h1: { fontSize: 28, fontWeight: "700", color: tc.textPrimary, flex: 1 },
+  segment: { flexDirection: "row", backgroundColor: tc.surface, borderRadius: radius.pill, padding: 3 },
   segItem: { flex: 1, paddingVertical: spacing.sm, alignItems: "center", borderRadius: radius.pill },
-  segItemActive: { backgroundColor: colors.surfaceAlt },
-  segText: { color: colors.textDim, fontSize: 13 },
-  segTextActive: { color: colors.textPrimary, fontWeight: "600" },
+  segItemActive: { backgroundColor: tc.surfaceAlt },
+  segText: { color: tc.textDim, fontSize: 13 },
+  segTextActive: { color: tc.textPrimary, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  rowMe: { backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.sm },
+  rowMe: { backgroundColor: tc.surface, borderRadius: radius.card, paddingHorizontal: spacing.sm },
   rowMain: { flex: 1 },
-  rowText: { color: colors.textPrimary, fontSize: 16 },
-  rowSub: { color: colors.textDim, fontSize: 13 },
+  rowText: { color: tc.textPrimary, fontSize: 16 },
+  rowSub: { color: tc.textDim, fontSize: 13 },
   bold: { fontWeight: "700" },
-  dim: { color: colors.textDim },
-  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.surfaceAlt, alignItems: "center", justifyContent: "center" },
-  avatarText: { color: colors.mint, fontWeight: "700" },
-  rank: { width: 24, color: colors.textDim, fontSize: 16, fontWeight: "700", textAlign: "center" },
-  count: { color: colors.mint, fontSize: 22, fontWeight: "700" },
-  compareBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint },
-  compareText: { color: colors.mint, fontWeight: "600", fontSize: 13 },
+  dim: { color: tc.textDim },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: tc.surfaceAlt, alignItems: "center", justifyContent: "center" },
+  avatarText: { color: tc.mint, fontWeight: "700" },
+  rank: { width: 24, color: tc.textDim, fontSize: 16, fontWeight: "700", textAlign: "center" },
+  count: { color: tc.mint, fontSize: 22, fontWeight: "700" },
+  compareBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: tc.mint },
+  compareText: { color: tc.mint, fontWeight: "600", fontSize: 13 },
   modalHeader: { flexDirection: "row", alignItems: "center", paddingBottom: spacing.sm },
-  close: { color: colors.mint, fontSize: 17, fontWeight: "600" },
+  close: { color: tc.mint, fontSize: 17, fontWeight: "600" },
   legend: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md, justifyContent: "center" },
   legendItem: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   legendDot: { width: 12, height: 12, borderRadius: 6 },
-  legendText: { color: colors.textPrimary, fontSize: 13 },
-  compareLine: { color: colors.textPrimary, fontSize: 16, textAlign: "center" },
-  tagHeader: { color: colors.mint, fontSize: 15, fontWeight: "700" },
-  tagCard: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm },
-  tagText: { color: colors.textPrimary, fontSize: 15 },
+  legendText: { color: tc.textPrimary, fontSize: 13 },
+  compareLine: { color: tc.textPrimary, fontSize: 16, textAlign: "center" },
+  tagHeader: { color: tc.mint, fontSize: 15, fontWeight: "700" },
+  tagCard: { backgroundColor: tc.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm },
+  tagText: { color: tc.textPrimary, fontSize: 15 },
   tagActions: { flexDirection: "row", gap: spacing.sm, justifyContent: "flex-end" },
-  declineBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
-  declineText: { color: colors.textDim, fontWeight: "600" },
-  acceptBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.mint },
-  acceptText: { color: colors.bg, fontWeight: "700" },
+  declineBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: tc.surfaceAlt },
+  declineText: { color: tc.textDim, fontWeight: "600" },
+  acceptBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: tc.mint },
+  acceptText: { color: tc.bg, fontWeight: "700" },
 });
 

@@ -5,7 +5,8 @@ import {
   Map,
   type CameraRef,
 } from "@maplibre/maplibre-react-native";
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,6 +24,8 @@ import { useMapTheme } from "@/lib/map-theme-context";
 export function ExploreMapModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const L = useLayout();
   const { theme } = useMapTheme();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const cameraRef = useRef<CameraRef>(null);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -107,13 +110,13 @@ export function ExploreMapModal({ visible, onClose }: { visible: boolean; onClos
               value={q}
               onChangeText={setQ}
               placeholder="Search to fly there…"
-              placeholderTextColor={colors.textDim}
+              placeholderTextColor={tc.textDim}
               style={styles.input}
               autoCorrect={false}
               maxFontSizeMultiplier={1.3}
             />
             {searching ? (
-              <ActivityIndicator color={colors.mint} />
+              <ActivityIndicator color={tc.mint} />
             ) : (
               <Pressable onPress={onClose} hitSlop={12}>
                 <Text variant="body" style={styles.close}>Done</Text>
@@ -136,14 +139,14 @@ export function ExploreMapModal({ visible, onClose }: { visible: boolean; onClos
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   overlay: { position: "absolute", gap: spacing.sm },
-  searchBar: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.md },
-  input: { flex: 1, color: colors.textPrimary, fontSize: 17, paddingVertical: spacing.md },
-  close: { color: colors.mint, fontWeight: "600", fontSize: 16 },
-  dropdown: { backgroundColor: colors.surface, borderRadius: radius.card, overflow: "hidden" },
+  searchBar: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: tc.surface, borderRadius: radius.card, paddingHorizontal: spacing.md },
+  input: { flex: 1, color: tc.textPrimary, fontSize: 17, paddingVertical: spacing.md },
+  close: { color: tc.mint, fontWeight: "600", fontSize: 16 },
+  dropdown: { backgroundColor: tc.surface, borderRadius: radius.card, overflow: "hidden" },
   resultRow: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  resultText: { color: colors.textPrimary, fontSize: 16 },
-  resultSub: { color: colors.textDim, fontSize: 13 },
+  resultText: { color: tc.textPrimary, fontSize: 16 },
+  resultSub: { color: tc.textDim, fontSize: 13 },
 });

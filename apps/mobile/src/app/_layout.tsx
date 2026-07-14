@@ -1,21 +1,21 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
-import { AppState, useColorScheme } from 'react-native';
+import { AppState } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import AppTabs from '@/components/app-tabs';
+import { AppThemeProvider, useAppTheme } from '@/lib/app-theme';
 import { MapThemeProvider } from '@/lib/map-theme-context';
 import { flush } from '@/lib/offline-queue';
 import { registerForPush } from '@/lib/push';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
-  // Replay any offline-queued writes on launch and whenever the app foregrounds.
+export default function RootLayout() {
+  // Replay offline-queued writes on launch and whenever the app foregrounds.
   useEffect(() => {
     void flush();
     void registerForPush();
@@ -24,14 +24,26 @@ export default function TabLayout() {
     });
     return () => sub.remove();
   }, []);
+
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <MapThemeProvider>
-          <AnimatedSplashOverlay />
-          <AppTabs />
-        </MapThemeProvider>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AppThemeProvider>
+          <ThemedRoot />
+        </AppThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+function ThemedRoot() {
+  const { mode } = useAppTheme();
+  return (
+    <ThemeProvider value={mode === 'light' ? DefaultTheme : DarkTheme}>
+      <MapThemeProvider>
+        <AnimatedSplashOverlay />
+        <AppTabs />
+      </MapThemeProvider>
+    </ThemeProvider>
   );
 }

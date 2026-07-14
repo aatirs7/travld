@@ -1,9 +1,9 @@
 import { defaultMapTheme, type MapTheme } from "@travld/core";
-import { colors } from "@travld/ui";
 import { useMemo } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { normalizeName, type Admin1Map } from "@/lib/api";
+import { useAppColors } from "@/lib/app-theme";
 
 interface Props {
   map: Admin1Map;
@@ -20,6 +20,7 @@ interface Props {
  * against the visited set (NE geometry vs GeoNames region list don't share codes).
  */
 export function CountryMap({ map, visitedNames, theme = defaultMapTheme, onRegionPress, style }: Props) {
+  const tc = useAppColors();
   const regions = useMemo(
     () =>
       map.regions.map((r, i) => ({
@@ -39,13 +40,13 @@ export function CountryMap({ map, visitedNames, theme = defaultMapTheme, onRegio
         preserveAspectRatio="xMidYMid meet"
         style={{ aspectRatio: map.width / map.height }}
       >
-        <Rect x={0} y={0} width={map.width} height={map.height} fill={colors.bg} />
+        <Rect x={0} y={0} width={map.width} height={map.height} fill={tc.bg} />
         {regions.map((r) => (
           <Path
             key={r.key}
             d={r.d}
             fill={r.visited ? theme.visited : theme.land}
-            stroke={colors.bg}
+            stroke={tc.bg}
             strokeWidth={0.5}
             onPress={onRegionPress && r.name ? () => onRegionPress(r.name!) : undefined}
           />

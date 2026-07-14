@@ -28,3 +28,19 @@ export function setFlag(key: string, value: boolean): void {
     /* no-op */
   }
 }
+
+export function getString(key: string): string | undefined {
+  try {
+    return store()?.getString(key);
+  } catch {
+    return undefined;
+  }
+}
+
+export function setString(key: string, value: string): void {
+  try {
+    store()?.set(key, value);
+  } catch {
+    /* no-op */
+  }
+}

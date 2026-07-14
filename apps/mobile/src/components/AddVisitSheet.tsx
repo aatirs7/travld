@@ -1,6 +1,7 @@
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -70,6 +71,8 @@ export function AddVisitSheet({
   onSaved?: () => void;
 }) {
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -180,12 +183,12 @@ export function AddVisitSheet({
                   value={q}
                   onChangeText={setQ}
                   placeholder="Search cities, states, countries…"
-                  placeholderTextColor={colors.textDim}
+                  placeholderTextColor={tc.textDim}
                   style={styles.input}
                   autoCorrect={false}
                   maxFontSizeMultiplier={1.3}
                 />
-                {searching && <ActivityIndicator color={colors.mint} />}
+                {searching && <ActivityIndicator color={tc.mint} />}
               </View>
 
               {q.trim().length < 2 ? (
@@ -249,7 +252,7 @@ export function AddVisitSheet({
                 value={newTripTitle}
                 onChangeText={(v) => { setNewTripTitle(v); if (v) setTripId(null); }}
                 placeholder="+ New trip title"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={tc.textDim}
                 style={styles.newTrip}
                 maxFontSizeMultiplier={1.3}
               />
@@ -268,7 +271,7 @@ export function AddVisitSheet({
                 value={userQ}
                 onChangeText={setUserQ}
                 placeholder="Search people by @handle"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={tc.textDim}
                 style={styles.newTrip}
                 autoCapitalize="none"
                 maxFontSizeMultiplier={1.3}
@@ -288,7 +291,7 @@ export function AddVisitSheet({
                 value={note}
                 onChangeText={setNote}
                 placeholder="Add a note (optional)"
-                placeholderTextColor={colors.textDim}
+                placeholderTextColor={tc.textDim}
                 style={styles.noteInput}
                 multiline
                 maxFontSizeMultiplier={1.5}
@@ -314,32 +317,32 @@ function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingBottom: spacing.md },
-  title: { fontSize: 22, fontWeight: "700", color: colors.textPrimary },
-  close: { color: colors.mint, fontSize: 17, fontWeight: "600" },
-  searchBar: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radius.card, paddingHorizontal: spacing.md },
-  input: { flex: 1, color: colors.textPrimary, fontSize: 17, paddingVertical: spacing.md },
+  title: { fontSize: 22, fontWeight: "700", color: tc.textPrimary },
+  close: { color: tc.mint, fontSize: 17, fontWeight: "600" },
+  searchBar: { flexDirection: "row", alignItems: "center", gap: spacing.sm, backgroundColor: tc.surface, borderRadius: radius.card, paddingHorizontal: spacing.md },
+  input: { flex: 1, color: tc.textPrimary, fontSize: 17, paddingVertical: spacing.md },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  rowText: { color: colors.textPrimary, fontSize: 16 },
-  rowSub: { color: colors.textDim, fontSize: 13 },
-  browseLabel: { color: colors.mint, fontSize: 12, letterSpacing: 1, marginTop: spacing.md, fontWeight: "700" },
+  rowText: { color: tc.textPrimary, fontSize: 16 },
+  rowSub: { color: tc.textDim, fontSize: 13 },
+  browseLabel: { color: tc.mint, fontSize: 12, letterSpacing: 1, marginTop: spacing.md, fontWeight: "700" },
   flag: { fontSize: 22 },
-  plus: { color: colors.mint, fontSize: 24, fontWeight: "300", paddingHorizontal: spacing.sm },
-  selected: { fontSize: 24, fontWeight: "700", color: colors.textPrimary },
-  dim: { color: colors.textDim },
-  label: { fontSize: 13, color: colors.textDim, letterSpacing: 0.5, marginTop: spacing.sm },
+  plus: { color: tc.mint, fontSize: 24, fontWeight: "300", paddingHorizontal: spacing.sm },
+  selected: { fontSize: 24, fontWeight: "700", color: tc.textPrimary },
+  dim: { color: tc.textDim },
+  label: { fontSize: 13, color: tc.textDim, letterSpacing: 0.5, marginTop: spacing.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, maxWidth: 200 },
-  chipActive: { backgroundColor: colors.mint },
-  chipText: { color: colors.textPrimary, fontSize: 14 },
-  chipTextActive: { color: colors.bg, fontWeight: "700" },
-  newTrip: { backgroundColor: colors.surfaceAlt, borderRadius: radius.card, color: colors.textPrimary, padding: spacing.md },
-  noteInput: { backgroundColor: colors.surfaceAlt, borderRadius: radius.card, color: colors.textPrimary, padding: spacing.md, minHeight: 60 },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: tc.surfaceAlt, maxWidth: 200 },
+  chipActive: { backgroundColor: tc.mint },
+  chipText: { color: tc.textPrimary, fontSize: 14 },
+  chipTextActive: { color: tc.bg, fontWeight: "700" },
+  newTrip: { backgroundColor: tc.surfaceAlt, borderRadius: radius.card, color: tc.textPrimary, padding: spacing.md },
+  noteInput: { backgroundColor: tc.surfaceAlt, borderRadius: radius.card, color: tc.textPrimary, padding: spacing.md, minHeight: 60 },
   actions: { flexDirection: "row", gap: spacing.md, marginTop: spacing.md },
-  backBtn: { flex: 1, alignItems: "center", paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
-  backText: { color: colors.textPrimary, fontWeight: "600" },
-  saveBtn: { flex: 2, alignItems: "center", paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: colors.mint },
-  saveText: { color: colors.bg, fontWeight: "700" },
+  backBtn: { flex: 1, alignItems: "center", paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: tc.surfaceAlt },
+  backText: { color: tc.textPrimary, fontWeight: "600" },
+  saveBtn: { flex: 2, alignItems: "center", paddingVertical: spacing.md, borderRadius: radius.pill, backgroundColor: tc.mint },
+  saveText: { color: tc.bg, fontWeight: "700" },
 });

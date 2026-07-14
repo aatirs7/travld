@@ -1,12 +1,13 @@
 import { mapThemePresets, type MapTheme } from "@travld/core";
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { radius, spacing, Text, useLayout, type ThemeColors } from "@travld/ui";
 import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { PassportMap } from "@/components/PassportMap";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { api } from "@/lib/api";
+import { useAppColors, useAppTheme } from "@/lib/app-theme";
 import { useMapTheme } from "@/lib/map-theme-context";
 
 const VISITED_SWATCHES = [
@@ -19,6 +20,9 @@ const PREVIEW = new Set(["US", "BR", "PK", "JP", "AU", "ZA", "FR", "EG"]);
 export default function ProfileScreen() {
   const { theme, setTheme } = useMapTheme();
   const L = useLayout();
+  const c = useAppColors();
+  const { mode, setMode } = useAppTheme();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [includeTransit, setIncludeTransit] = useState(false);
 
   useEffect(() => {
@@ -98,6 +102,23 @@ export default function ProfileScreen() {
         </Text>
 
         <Text variant="hero" style={styles.section}>
+          Appearance
+        </Text>
+        <View style={styles.appearanceRow}>
+          {(["dark", "light"] as const).map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => setMode(m)}
+              style={[styles.appearanceChip, mode === m && styles.appearanceChipActive]}
+            >
+              <Text variant="body" style={[styles.appearanceText, mode === m && styles.appearanceTextActive]}>
+                {m === "dark" ? "Dark" : "Light"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Text variant="hero" style={styles.section}>
           Counting
         </Text>
         <View style={styles.settingRow}>
@@ -112,8 +133,8 @@ export default function ProfileScreen() {
           <Switch
             value={includeTransit}
             onValueChange={toggleTransit}
-            trackColor={{ true: theme.visited, false: colors.grey }}
-            thumbColor={colors.textPrimary}
+            trackColor={{ true: theme.visited, false: c.grey }}
+            thumbColor={c.textPrimary}
           />
         </View>
       </ScrollView>
@@ -121,12 +142,12 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
-  section: { fontSize: 22, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
-  preview: { borderRadius: radius.card, overflow: "hidden", backgroundColor: colors.surface },
-  label: { fontSize: 13, color: colors.textDim, letterSpacing: 0.5, textTransform: "uppercase" },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: c.bg },
+  h1: { fontSize: 28, fontWeight: "700", color: c.textPrimary },
+  section: { fontSize: 22, fontWeight: "700", color: c.textPrimary, textAlign: "center" },
+  preview: { borderRadius: radius.card, overflow: "hidden", backgroundColor: c.surface },
+  label: { fontSize: 13, color: c.textDim, letterSpacing: 0.5, textTransform: "uppercase" },
   presetRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   preset: {
     flexDirection: "row",
@@ -135,13 +156,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: "transparent",
   },
-  presetActive: { borderColor: colors.textPrimary },
+  presetActive: { borderColor: c.textPrimary },
   presetSwatch: { width: 16, height: 16, borderRadius: 8 },
-  presetName: { color: colors.textPrimary, fontSize: 15 },
+  presetName: { color: c.textPrimary, fontSize: 15 },
   swatchGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   swatch: {
     width: 48,
@@ -150,9 +171,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
   },
-  swatchActive: { borderColor: colors.textPrimary },
-  hint: { color: colors.textDim, fontSize: 13, textAlign: "center" },
+  swatchActive: { borderColor: c.textPrimary },
+  hint: { color: c.textDim, fontSize: 13, textAlign: "center" },
   settingRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   settingMain: { flex: 1, gap: spacing.xs },
-  settingTitle: { color: colors.textPrimary, fontSize: 16 },
+  settingTitle: { color: c.textPrimary, fontSize: 16 },
+  appearanceRow: { flexDirection: "row", gap: spacing.sm, justifyContent: "center" },
+  appearanceChip: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  appearanceChipActive: { borderColor: c.mint },
+  appearanceText: { color: c.textDim, fontWeight: "600" },
+  appearanceTextActive: { color: c.mint },
 });

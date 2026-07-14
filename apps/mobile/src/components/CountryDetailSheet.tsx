@@ -1,4 +1,5 @@
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -33,6 +34,8 @@ interface Props {
 export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
   const { theme } = useMapTheme();
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [detail, setDetail] = useState<CountryDetail | null>(null);
   const [admin1, setAdmin1] = useState<Admin1Map | null>(null);
   const [cities, setCities] = useState<CityRow[] | null>(null);
@@ -121,7 +124,7 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
 
         {loading || !detail ? (
           <View style={styles.center}>
-            <ActivityIndicator color={colors.mint} />
+            <ActivityIndicator color={tc.mint} />
           </View>
         ) : (
           <ScrollView
@@ -197,7 +200,7 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
                     onPress={() => toggleRegion(r.id)}
                     style={[styles.row, { minHeight: L.listRow }]}
                   >
-                    <View style={[styles.dot, { backgroundColor: r.visited ? theme.visited : colors.grey }]} />
+                    <View style={[styles.dot, { backgroundColor: r.visited ? theme.visited : tc.grey }]} />
                     <Text variant="body" numberOfLines={1} ellipsizeMode="tail" style={styles.rowText}>
                       {r.name}
                     </Text>
@@ -216,7 +219,7 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
                     onPress={() => toggleCity(c.id)}
                     style={[styles.row, { minHeight: L.listRow }]}
                   >
-                    <View style={[styles.dot, { backgroundColor: c.visited ? theme.visited : colors.grey }]} />
+                    <View style={[styles.dot, { backgroundColor: c.visited ? theme.visited : tc.grey }]} />
                     <Text variant="body" numberOfLines={1} ellipsizeMode="tail" style={styles.rowText}>
                       {c.name}
                     </Text>
@@ -227,7 +230,7 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
 
             {tab === "visits" &&
               (visits == null ? (
-                <ActivityIndicator color={colors.mint} />
+                <ActivityIndicator color={tc.mint} />
               ) : visits.length === 0 ? (
                 <Text variant="body" style={styles.dim}>No visits logged here yet.</Text>
               ) : (
@@ -284,40 +287,42 @@ function ListOrLoading<T>({
   empty: string;
   render: (item: T) => React.ReactNode;
 }) {
-  if (data == null) return <ActivityIndicator color={colors.mint} />;
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
+  if (data == null) return <ActivityIndicator color={tc.mint} />;
   if (data.length === 0) return <Text variant="body" style={styles.dim}>{empty}</Text>;
   return <View>{data.map(render)}</View>;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingBottom: spacing.sm,
   },
   backBtn: { width: 76, justifyContent: "center" },
-  back: { color: colors.mint, fontSize: 17, fontWeight: "600" },
-  title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, flex: 1, textAlign: "center" },
+  back: { color: tc.mint, fontSize: 17, fontWeight: "600" },
+  title: { fontSize: 20, fontWeight: "700", color: tc.textPrimary, flex: 1, textAlign: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
   mapHero: { width: "100%", minHeight: 200, justifyContent: "center" },
   statRow: { alignItems: "center" },
-  mapHint: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.sm },
+  mapHint: { color: tc.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.sm },
   segment: {
     flexDirection: "row",
-    backgroundColor: colors.surface,
+    backgroundColor: tc.surface,
     borderRadius: radius.pill,
     padding: 3,
   },
   segItem: { flex: 1, paddingVertical: spacing.sm, alignItems: "center", borderRadius: radius.pill },
-  segItemActive: { backgroundColor: colors.surfaceAlt },
-  segText: { color: colors.textDim, fontSize: 13 },
-  segTextActive: { color: colors.textPrimary, fontWeight: "600" },
+  segItemActive: { backgroundColor: tc.surfaceAlt },
+  segText: { color: tc.textDim, fontSize: 13 },
+  segTextActive: { color: tc.textPrimary, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
-  rowMeta: { color: colors.textDim, fontSize: 13 },
-  dim: { color: colors.textDim, textAlign: "center" },
-  revisit: { color: colors.mint, fontSize: 15, marginTop: spacing.xs, textAlign: "center" },
-  tripHeader: { color: colors.textPrimary, fontSize: 15, fontWeight: "700", marginTop: spacing.sm, textAlign: "center" },
+  rowText: { color: tc.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
+  rowMeta: { color: tc.textDim, fontSize: 13 },
+  dim: { color: tc.textDim, textAlign: "center" },
+  revisit: { color: tc.mint, fontSize: 15, marginTop: spacing.xs, textAlign: "center" },
+  tripHeader: { color: tc.textPrimary, fontSize: 15, fontWeight: "700", marginTop: spacing.sm, textAlign: "center" },
 });

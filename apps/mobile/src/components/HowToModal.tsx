@@ -1,6 +1,7 @@
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import { SymbolView, type SFSymbol } from "expo-symbols";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, View } from "react-native";
 
 const STEPS: { icon: SFSymbol; title: string; body: string }[] = [
@@ -33,6 +34,8 @@ const STEPS: { icon: SFSymbol; title: string; body: string }[] = [
 
 export function HowToModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [step, setStep] = useState(0);
   const s = STEPS[step]!;
   const last = step === STEPS.length - 1;
@@ -49,7 +52,7 @@ export function HowToModal({ visible, onClose }: { visible: boolean; onClose: ()
           </Pressable>
 
           <View style={styles.iconWrap}>
-            <SymbolView name={s.icon} size={44} tintColor={colors.mint} resizeMode="scaleAspectFit" />
+            <SymbolView name={s.icon} size={44} tintColor={tc.mint} resizeMode="scaleAspectFit" />
           </View>
           <Text variant="hero" style={styles.title}>{s.title}</Text>
           <Text variant="body" style={styles.body}>{s.body}</Text>
@@ -69,38 +72,38 @@ export function HowToModal({ visible, onClose }: { visible: boolean; onClose: ()
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.72)", alignItems: "center", justifyContent: "center" },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: tc.surface,
     borderRadius: 24,
     padding: spacing.xl,
     alignItems: "center",
     gap: spacing.md,
   },
   skip: { position: "absolute", top: spacing.md, right: spacing.md },
-  skipText: { color: colors.textDim, fontSize: 14 },
+  skipText: { color: tc.textDim, fontSize: 14 },
   iconWrap: {
     width: 88,
     height: 88,
     borderRadius: 44,
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: tc.surfaceAlt,
     alignItems: "center",
     justifyContent: "center",
     marginTop: spacing.sm,
   },
-  title: { color: colors.textPrimary, fontSize: 22, fontWeight: "700", textAlign: "center" },
-  body: { color: colors.textDim, fontSize: 15, lineHeight: 21, textAlign: "center", minHeight: 64 },
+  title: { color: tc.textPrimary, fontSize: 22, fontWeight: "700", textAlign: "center" },
+  body: { color: tc.textDim, fontSize: 15, lineHeight: 21, textAlign: "center", minHeight: 64 },
   dots: { flexDirection: "row", gap: 6, marginTop: spacing.xs },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.grey },
-  dotActive: { backgroundColor: colors.mint, width: 20 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: tc.grey },
+  dotActive: { backgroundColor: tc.mint, width: 20 },
   cta: {
     alignSelf: "stretch",
     alignItems: "center",
     paddingVertical: spacing.md,
     borderRadius: radius.pill,
-    backgroundColor: colors.mint,
+    backgroundColor: tc.mint,
     marginTop: spacing.sm,
   },
-  ctaText: { color: colors.bg, fontWeight: "700", fontSize: 16 },
+  ctaText: { color: tc.bg, fontWeight: "700", fontSize: 16 },
 });

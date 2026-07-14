@@ -1,5 +1,6 @@
-import { colors, spacing, Text, useLayout } from "@travld/ui";
-import type { ReactNode } from "react";
+import { type ThemeColors, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
+import { type ReactNode, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
 /**
@@ -16,6 +17,8 @@ export function ScreenHeader({
   right?: ReactNode;
 }) {
   const L = useLayout();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   return (
     <View style={[styles.row, { paddingTop: L.insets.top + spacing.sm, paddingHorizontal: L.gutter }]}>
       <View style={styles.side}>{left}</View>
@@ -27,9 +30,9 @@ export function ScreenHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", paddingBottom: spacing.sm },
   side: { width: 72, justifyContent: "center" },
   right: { alignItems: "flex-end" },
-  title: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "700", color: colors.textPrimary },
+  title: { flex: 1, textAlign: "center", fontSize: 20, fontWeight: "700", color: tc.textPrimary },
 });

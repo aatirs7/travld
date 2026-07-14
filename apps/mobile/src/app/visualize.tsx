@@ -1,4 +1,5 @@
-import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { type ThemeColors, radius, spacing, Text, useLayout } from "@travld/ui";
+import { useAppColors } from "@/lib/app-theme";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -27,6 +28,8 @@ const PURPOSE_COLORS: Record<string, string> = {
 export default function VisualizeScreen() {
   const L = useLayout();
   const { theme } = useMapTheme();
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState(false);
 
@@ -50,7 +53,7 @@ export default function VisualizeScreen() {
               </Pressable>
             </>
           ) : (
-            <ActivityIndicator color={colors.mint} />
+            <ActivityIndicator color={tc.mint} />
           )}
         </View>
       </View>
@@ -101,7 +104,7 @@ export default function VisualizeScreen() {
           <View style={styles.donutLegend}>
             {stats.purposes.map((p) => (
               <View key={p.purpose} style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: PURPOSE_COLORS[p.purpose] ?? colors.grey }]} />
+                <View style={[styles.legendDot, { backgroundColor: PURPOSE_COLORS[p.purpose] ?? tc.grey }]} />
                 <Text variant="body" style={styles.legendText}>{cap(p.purpose)} · {p.count}</Text>
               </View>
             ))}
@@ -140,6 +143,8 @@ export default function VisualizeScreen() {
 }
 
 function Tile({ value, label }: { value: number | string; label: string }) {
+  const tc = useAppColors();
+  const styles = useMemo(() => makeStyles(tc), [tc]);
   return (
     <View style={styles.tile}>
       <Text variant="hero" style={styles.tileValue}>{value}</Text>
@@ -149,6 +154,7 @@ function Tile({ value, label }: { value: number | string; label: string }) {
 }
 
 function Donut({ data }: { data: { purpose: string; count: number }[] }) {
+  const tc = useAppColors();
   const size = 120;
   const stroke = 22;
   const r = (size - stroke) / 2;
@@ -157,7 +163,7 @@ function Donut({ data }: { data: { purpose: string; count: number }[] }) {
   let offset = 0;
   const segments = data.map((d) => {
     const frac = d.count / total;
-    const seg = { color: PURPOSE_COLORS[d.purpose] ?? colors.grey, dash: frac * c, gap: c - frac * c, offset: -offset };
+    const seg = { color: PURPOSE_COLORS[d.purpose] ?? tc.grey, dash: frac * c, gap: c - frac * c, offset: -offset };
     offset += frac * c;
     return seg;
   });
@@ -190,30 +196,30 @@ function formatKm(km: number) {
   return `${km} km`;
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
+const makeStyles = (tc: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: tc.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: spacing.md },
-  retry: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.mint },
-  retryText: { color: colors.mint, fontWeight: "600" },
-  h1: { fontSize: 28, fontWeight: "700", color: colors.textPrimary },
-  section: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, textAlign: "center" },
+  retry: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: tc.mint },
+  retryText: { color: tc.mint, fontWeight: "600" },
+  h1: { fontSize: 28, fontWeight: "700", color: tc.textPrimary },
+  section: { fontSize: 20, fontWeight: "700", color: tc.textPrimary, textAlign: "center" },
   tiles: { flexDirection: "row", gap: spacing.sm },
-  tile: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, alignItems: "center", gap: spacing.xs },
-  tileValue: { color: colors.mint, fontSize: 28, fontWeight: "700" },
-  tileLabel: { color: colors.textDim, fontSize: 11, letterSpacing: 0.5 },
+  tile: { flex: 1, backgroundColor: tc.surface, borderRadius: radius.card, padding: spacing.md, alignItems: "center", gap: spacing.xs },
+  tileValue: { color: tc.mint, fontSize: 28, fontWeight: "700" },
+  tileLabel: { color: tc.textDim, fontSize: 11, letterSpacing: 0.5 },
   barRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  barLabel: { color: colors.textPrimary, fontSize: 14, width: 96 },
-  barTrack: { flex: 1, height: 12, backgroundColor: colors.surfaceAlt, borderRadius: 6, overflow: "hidden" },
+  barLabel: { color: tc.textPrimary, fontSize: 14, width: 96 },
+  barTrack: { flex: 1, height: 12, backgroundColor: tc.surfaceAlt, borderRadius: 6, overflow: "hidden" },
   barFill: { height: 12, borderRadius: 6 },
-  barValue: { color: colors.textDim, fontSize: 13, width: 28, textAlign: "right" },
+  barValue: { color: tc.textDim, fontSize: 13, width: 28, textAlign: "right" },
   donutRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   donutLegend: { flex: 1, gap: spacing.xs },
   legendItem: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   legendDot: { width: 12, height: 12, borderRadius: 6 },
-  legendText: { color: colors.textPrimary, fontSize: 14 },
+  legendText: { color: tc.textPrimary, fontSize: 14 },
   timeline: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm, minHeight: 150 },
   tlCol: { alignItems: "center", gap: spacing.xs, flex: 1 },
   tlBar: { width: 18, borderRadius: 4 },
-  tlYear: { color: colors.textDim, fontSize: 12 },
-  dim: { color: colors.textDim },
+  tlYear: { color: tc.textDim, fontSize: 12 },
+  dim: { color: tc.textDim },
 });
