@@ -12,20 +12,25 @@ export interface CountryRow {
   iso2: string | null;
   name: string;
   isUnMember: boolean;
+  continent: string | null;
 }
 
-/** All countries, alphabetical. Read-mostly reference data. */
+/** All countries with their continent, alphabetical. Read-mostly reference data. */
 export async function listCountries(): Promise<CountryRow[]> {
-  return db
-    .select({
-      id: places.id,
-      iso2: places.iso2,
-      name: places.name,
-      isUnMember: places.isUnMember,
-    })
-    .from(places)
-    .where(eq(places.level, "country"))
-    .orderBy(asc(places.name));
+  const rows = await db.execute(sql`
+    SELECT p.id, p.iso2, p.name, p.is_un_member AS "isUnMember", cont.name AS continent
+    FROM places p
+    LEFT JOIN places cont ON cont.id = p.parent_id
+    WHERE p.level = 'country'
+    ORDER BY p.name ASC
+  `);
+  return (rows.rows as any[]).map((r) => ({
+    id: Number(r.id),
+    iso2: r.iso2,
+    name: r.name,
+    isUnMember: r.isUnMember === true,
+    continent: r.continent ?? null,
+  }));
 }
 
 export interface VisitedSummary {

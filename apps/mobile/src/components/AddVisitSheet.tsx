@@ -10,7 +10,38 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, type CountryRow, type SearchResult, type TripListItem, type UserSearchRow } from "@/lib/api";
+import {
+  api,
+  flagEmoji,
+  type CountryRow,
+  type SearchResult,
+  type TripListItem,
+  type UserSearchRow,
+} from "@/lib/api";
+
+const CONTINENT_ORDER = [
+  "North America",
+  "South America",
+  "Europe",
+  "Africa",
+  "Asia",
+  "Oceania",
+  "Antarctica",
+];
+
+function groupByContinent(countries: CountryRow[]): [string, CountryRow[]][] {
+  const map = new Map<string, CountryRow[]>();
+  for (const c of countries) {
+    const k = c.continent ?? "Other";
+    if (!map.has(k)) map.set(k, []);
+    map.get(k)!.push(c);
+  }
+  return [...map.entries()].sort((a, b) => {
+    const ia = CONTINENT_ORDER.indexOf(a[0]);
+    const ib = CONTINENT_ORDER.indexOf(b[0]);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+}
 
 // browse a country without typing → treat it as a place to add
 function countryToResult(c: CountryRow): SearchResult {
@@ -158,20 +189,23 @@ export function AddVisitSheet({
               </View>
 
               {q.trim().length < 2 ? (
-                // browse: pick a country from the list (no typing needed)
-                <>
-                  <Text variant="hero" style={styles.browseLabel}>ALL COUNTRIES</Text>
-                  {allCountries.map((c) => (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => setPlace(countryToResult(c))}
-                      style={[styles.row, { minHeight: L.listRow }]}
-                    >
-                      <Text variant="body" numberOfLines={1} style={styles.rowText}>{c.name}</Text>
-                      <Text variant="body" style={styles.plus}>+</Text>
-                    </Pressable>
-                  ))}
-                </>
+                // browse: pick a country, grouped by continent, with flags
+                groupByContinent(allCountries).map(([continent, list]) => (
+                  <View key={continent}>
+                    <Text variant="hero" style={styles.browseLabel}>{continent.toUpperCase()}</Text>
+                    {list.map((c) => (
+                      <Pressable
+                        key={c.id}
+                        onPress={() => setPlace(countryToResult(c))}
+                        style={[styles.row, { minHeight: L.listRow }]}
+                      >
+                        <Text variant="body" style={styles.flag}>{flagEmoji(c.iso2)}</Text>
+                        <Text variant="body" numberOfLines={1} style={[styles.rowText, { flex: 1 }]}>{c.name}</Text>
+                        <Text variant="body" style={styles.plus}>+</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ))
               ) : (
                 results.map((r) => (
                   <Pressable key={r.id} onPress={() => setPlace(r)} style={[styles.row, { minHeight: L.listRow }]}>
@@ -290,7 +324,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowText: { color: colors.textPrimary, fontSize: 16 },
   rowSub: { color: colors.textDim, fontSize: 13 },
-  browseLabel: { color: colors.textDim, fontSize: 12, letterSpacing: 1, marginTop: spacing.sm },
+  browseLabel: { color: colors.mint, fontSize: 12, letterSpacing: 1, marginTop: spacing.md, fontWeight: "700" },
+  flag: { fontSize: 22 },
   plus: { color: colors.mint, fontSize: 24, fontWeight: "300", paddingHorizontal: spacing.sm },
   selected: { fontSize: 24, fontWeight: "700", color: colors.textPrimary },
   dim: { color: colors.textDim },

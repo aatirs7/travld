@@ -45,9 +45,9 @@ export function CompareMap({ both, onlyMe, onlyThem, theme = defaultMapTheme, st
         preserveAspectRatio="xMidYMid meet"
         style={{ aspectRatio: WORLD.width / WORLD.height }}
       >
-        <Rect x={0} y={0} width={WORLD.width} height={WORLD.height} fill={theme.water} />
+        <Rect x={0} y={0} width={WORLD.width} height={WORLD.height} fill={colors.bg} />
         {paths.map((c) => (
-          <Path key={c.iso} d={c.d} fill={c.fill} stroke={theme.water} strokeWidth={0.3} />
+          <Path key={c.iso} d={c.d} fill={c.fill} stroke={colors.bg} strokeWidth={0.3} />
         ))}
       </Svg>
     </View>

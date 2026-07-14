@@ -17,6 +17,24 @@ export interface CountryRow {
   iso2: string | null;
   name: string;
   isUnMember: boolean;
+  continent: string | null;
+}
+
+/** Normalize a place name for matching across data sources (NE ↔ GeoNames):
+ *  lowercase, strip accents and non-alphanumerics. */
+export function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/** ISO2 → flag emoji (regional indicator symbols). */
+export function flagEmoji(iso2: string | null): string {
+  if (!iso2 || iso2.length !== 2) return "🏳️";
+  const A = 0x1f1e6;
+  return String.fromCodePoint(A + (iso2.charCodeAt(0) - 65), A + (iso2.charCodeAt(1) - 65));
 }
 
 export interface ToggleResult {

@@ -13,6 +13,7 @@ import { CountryMap } from "@/components/CountryMap";
 import { ProgressRing } from "@/components/ProgressRing";
 import {
   api,
+  normalizeName,
   type Admin1Map,
   type CityRow,
   type CountryDetail,
@@ -71,12 +72,12 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
 
   const visitedNames = useMemo(
     () =>
-      new Set((detail?.regions ?? []).filter((r) => r.visited).map((r) => r.name.toLowerCase())),
+      new Set((detail?.regions ?? []).filter((r) => r.visited).map((r) => normalizeName(r.name))),
     [detail],
   );
   const idByName = useMemo(() => {
     const m = new Map<string, number>();
-    for (const r of detail?.regions ?? []) m.set(r.name.toLowerCase(), r.id);
+    for (const r of detail?.regions ?? []) m.set(normalizeName(r.name), r.id);
     return m;
   }, [detail]);
 
@@ -138,33 +139,37 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
                 {detail.firstVisitAt ? ` · since ${detail.firstVisitAt.slice(0, 4)}` : ""}
               </Text>
             )}
-            <View style={styles.topRow}>
-              {admin1 ? (
-                <View style={styles.mapWrap}>
-                  <CountryMap
-                    map={admin1}
-                    visitedNames={visitedNames}
-                    theme={theme}
-                    onRegionPress={(name) => {
-                      const id = idByName.get(name.toLowerCase());
-                      if (id != null) void toggleRegion(id);
-                    }}
-                  />
-                </View>
-              ) : (
-                <View style={[styles.mapWrap, styles.center]}>
-                  <Text variant="body" style={styles.dim}>
-                    No map
-                  </Text>
-                </View>
-              )}
+            {/* hero: a map of just this country — tap a state/region to fill it */}
+            {admin1 ? (
+              <View style={styles.mapHero}>
+                <CountryMap
+                  map={admin1}
+                  visitedNames={visitedNames}
+                  theme={theme}
+                  onRegionPress={(name) => {
+                    const id = idByName.get(normalizeName(name));
+                    if (id != null) void toggleRegion(id);
+                  }}
+                />
+              </View>
+            ) : (
+              <View style={[styles.mapHero, styles.center]}>
+                <Text variant="body" style={styles.dim}>Map not available for this country</Text>
+              </View>
+            )}
+
+            <View style={styles.statRow}>
               <ProgressRing
                 value={detail.regionVisited}
                 total={detail.regionTotal}
                 label={regionLabel}
                 color={theme.visited}
+                size={96}
               />
             </View>
+            <Text variant="body" style={styles.mapHint}>
+              Tap a {regionLabel.toLowerCase()} on the map — or in the list below — to mark it visited.
+            </Text>
 
             {/* segmented control */}
             <View style={styles.segment}>
@@ -295,8 +300,9 @@ const styles = StyleSheet.create({
   back: { color: colors.mint, fontSize: 17, fontWeight: "600" },
   title: { fontSize: 20, fontWeight: "700", color: colors.textPrimary, flex: 1, textAlign: "center" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: spacing.lg },
-  topRow: { flexDirection: "row", alignItems: "center", gap: spacing.md, marginTop: spacing.sm },
-  mapWrap: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.card, overflow: "hidden", padding: spacing.sm },
+  mapHero: { width: "100%", minHeight: 200, justifyContent: "center" },
+  statRow: { alignItems: "center" },
+  mapHint: { color: colors.textDim, fontSize: 13, textAlign: "center", marginTop: -spacing.sm },
   segment: {
     flexDirection: "row",
     backgroundColor: colors.surface,
@@ -309,9 +315,9 @@ const styles = StyleSheet.create({
   segTextActive: { color: colors.textPrimary, fontWeight: "600" },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
+  rowText: { color: colors.textPrimary, fontSize: 16, flex: 1, textAlign: "center" },
   rowMeta: { color: colors.textDim, fontSize: 13 },
-  dim: { color: colors.textDim },
-  revisit: { color: colors.mint, fontSize: 15, marginTop: spacing.xs },
-  tripHeader: { color: colors.textPrimary, fontSize: 15, fontWeight: "700", marginTop: spacing.sm },
+  dim: { color: colors.textDim, textAlign: "center" },
+  revisit: { color: colors.mint, fontSize: 15, marginTop: spacing.xs, textAlign: "center" },
+  tripHeader: { color: colors.textPrimary, fontSize: 15, fontWeight: "700", marginTop: spacing.sm, textAlign: "center" },
 });

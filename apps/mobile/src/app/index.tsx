@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   headerIcon: { color: colors.mint, fontSize: 24 },
   headerIconDim: { color: colors.textDim, fontSize: 22, fontWeight: "700" },
   wordmarkWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
-  logo: { width: 150, height: 48 },
+  logo: { width: 200, height: 64 },
   error: { color: "#FF6B6B", textAlign: "center", paddingHorizontal: spacing.md },
   shareCard: { backgroundColor: colors.bg, gap: spacing.sm },
   dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: spacing.xs },

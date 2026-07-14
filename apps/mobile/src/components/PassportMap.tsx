@@ -1,4 +1,5 @@
 import { defaultMapTheme, type MapTheme } from "@travld/core";
+import { colors } from "@travld/ui";
 import { useMemo } from "react";
 import { View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -72,15 +73,16 @@ export function PassportMap({
         viewBox={VIEWBOX}
         preserveAspectRatio="xMidYMid slice"
       >
-        <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={theme.water} />
+        {/* water always == app background so the map is seamless */}
+        <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={colors.bg} />
         {paths.map((c) => (
           <Path
             key={c.iso}
             d={c.d}
             fill={c.fill}
             fillOpacity={c.fillOpacity}
-            stroke={theme.water}
-            strokeWidth={0.3}
+            stroke={colors.bg}
+            strokeWidth={0.5}
             onPress={onToggle ? () => onToggle(c.iso) : undefined}
           />
         ))}
