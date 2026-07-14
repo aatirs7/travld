@@ -1,13 +1,15 @@
 import { colors, radius, spacing, Text, useLayout } from "@travld/ui";
+import * as Haptics from "expo-haptics";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { CompareMap } from "@/components/CompareMap";
 import {
   api,
   type CompareResult,
   type FeedItem,
   type LeaderRow,
+  type PendingTag,
   type PersonRow,
 } from "@/lib/api";
 import { useMapTheme } from "@/lib/map-theme-context";
@@ -22,13 +24,38 @@ export default function FriendsScreen() {
   const [feed, setFeed] = useState<FeedItem[] | null>(null);
   const [board, setBoard] = useState<LeaderRow[] | null>(null);
   const [people, setPeople] = useState<PersonRow[] | null>(null);
+  const [tags, setTags] = useState<PendingTag[]>([]);
   const [compareId, setCompareId] = useState<string | null>(null);
+
+  const loadTags = useCallback(() => {
+    api.getPendingTags().then((r) => setTags(r.tags)).catch(() => setTags([]));
+  }, []);
 
   useEffect(() => {
     if (tab === "feed" && feed == null) api.getFeed().then((r) => setFeed(r.feed)).catch(() => setFeed([]));
+    if (tab === "feed") loadTags();
     if (tab === "board" && board == null) api.getLeaderboard().then((r) => setBoard(r.leaderboard)).catch(() => setBoard([]));
     if (tab === "friends" && people == null) api.getFollowing().then((r) => setPeople(r.following)).catch(() => setPeople([]));
-  }, [tab, feed, board, people]);
+  }, [tab, feed, board, people, loadTags]);
+
+  const respond = useCallback(
+    (t: PendingTag, accept: boolean) => {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      api.respondTag(t.visitId, accept).then(() => {
+        setTags((cur) => cur.filter((x) => x.visitId !== t.visitId));
+        if (accept) {
+          Alert.alert("Add to your map?", `Log your own visit to ${t.placeName}?`, [
+            { text: "Not now", style: "cancel" },
+            {
+              text: "Add it",
+              onPress: () => api.createVisit({ placeId: t.placeId }).catch(() => {}),
+            },
+          ]);
+        }
+      });
+    },
+    [],
+  );
 
   return (
     <View style={styles.container}>
@@ -52,6 +79,27 @@ export default function FriendsScreen() {
         contentContainerStyle={{ paddingHorizontal: L.gutter, paddingTop: spacing.md, paddingBottom: L.scrollPadBottom, gap: spacing.sm }}
         showsVerticalScrollIndicator={false}
       >
+        {tab === "feed" && tags.length > 0 && (
+          <View style={{ gap: spacing.sm }}>
+            <Text variant="hero" style={styles.tagHeader}>Tagged you</Text>
+            {tags.map((t) => (
+              <View key={t.visitId} style={styles.tagCard}>
+                <Text variant="body" numberOfLines={2} style={styles.tagText}>
+                  <Text variant="body" style={styles.bold}>{t.taggerName}</Text> tagged you in {t.placeName}
+                  {t.countryName ? `, ${t.countryName}` : ""}
+                </Text>
+                <View style={styles.tagActions}>
+                  <Pressable onPress={() => respond(t, false)} style={styles.declineBtn}>
+                    <Text variant="body" style={styles.declineText}>Decline</Text>
+                  </Pressable>
+                  <Pressable onPress={() => respond(t, true)} style={styles.acceptBtn}>
+                    <Text variant="body" style={styles.acceptText}>Accept</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
         {tab === "feed" && <Feed items={feed} L={L} />}
         {tab === "board" && <Board rows={board} L={L} />}
         {tab === "friends" && <Friends people={people} L={L} onCompare={setCompareId} />}
@@ -234,4 +282,13 @@ const styles = StyleSheet.create({
   legendDot: { width: 12, height: 12, borderRadius: 6 },
   legendText: { color: colors.textPrimary, fontSize: 13 },
   compareLine: { color: colors.textPrimary, fontSize: 16, textAlign: "center" },
+  tagHeader: { color: colors.mint, fontSize: 15, fontWeight: "700" },
+  tagCard: { backgroundColor: colors.surface, borderRadius: radius.card, padding: spacing.md, gap: spacing.sm },
+  tagText: { color: colors.textPrimary, fontSize: 15 },
+  tagActions: { flexDirection: "row", gap: spacing.sm, justifyContent: "flex-end" },
+  declineBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt },
+  declineText: { color: colors.textDim, fontWeight: "600" },
+  acceptBtn: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.mint },
+  acceptText: { color: colors.bg, fontWeight: "700" },
 });
+

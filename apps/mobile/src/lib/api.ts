@@ -1,12 +1,10 @@
 import type { DerivedTrip, EnrichedVisit, MapTheme, RoutePoint } from "@travld/core";
+import { BASE_URL, isNetworkError } from "./config";
+import { enqueue } from "./offline-queue";
 
 // Thin client for the travld API (apps/web). No auth yet — the server runs
 // everything as the dev user until the auth phase.
-//
-// EXPO_PUBLIC_API_URL is inlined by Expo at build time. On a physical device,
-// localhost won't reach your machine — set it to your LAN IP in apps/mobile/.env
-// (e.g. EXPO_PUBLIC_API_URL=http://192.168.1.10:3000).
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+export { BASE_URL, isNetworkError };
 
 export interface VisitedSummary {
   visitedIso2: string[];
@@ -132,6 +130,20 @@ export interface CompareResult {
   onlyThem: string[];
 }
 
+export interface UserSearchRow {
+  id: string;
+  handle: string;
+  displayName: string;
+}
+
+export interface PendingTag {
+  visitId: number;
+  taggerName: string;
+  placeId: number;
+  placeName: string;
+  countryName: string | null;
+}
+
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
@@ -170,14 +182,28 @@ export const api = {
     json<{ placeId: number; visited: boolean }>(`/api/places/${placeId}/toggle`, {
       method: "POST",
     }),
-  createVisit: (input: {
+  createVisit: async (input: {
     placeId: number;
     arrivedAt?: string | null;
     departedAt?: string | null;
     purpose?: "lived" | "work" | "leisure" | "transit" | "layover";
     note?: string | null;
     tripId?: number | null;
-  }) => json<VisitedSummary>("/api/visits", { method: "POST", body: JSON.stringify(input) }),
+  }): Promise<VisitedSummary & { visitId: number; queued?: boolean }> => {
+    try {
+      return await json<VisitedSummary & { visitId: number }>("/api/visits", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
+    } catch (e) {
+      if (isNetworkError(e)) {
+        // offline: persist and replay on reconnect
+        enqueue({ method: "POST", path: "/api/visits", body: input });
+        return { visitedIso2: [], unCount: 0, totalCount: 0, visitId: 0, queued: true };
+      }
+      throw e;
+    }
+  },
   getRegionProgress: () => json<{ progress: RegionProgress }>("/api/me/region-progress"),
   getPins: () => json<{ pins: Pin[] }>("/api/me/pins"),
   getSettings: () => json<{ settings: { includeTransit: boolean } }>("/api/me/settings"),
@@ -199,6 +225,23 @@ export const api = {
   unfollow: (userId: string) =>
     json<{ ok: boolean }>("/api/follow", { method: "DELETE", body: JSON.stringify({ userId }) }),
   compare: (userId: string) => json<CompareResult>(`/api/compare/${userId}`),
+
+  // tagging + push
+  registerPushToken: (token: string) =>
+    json<{ ok: boolean }>("/api/me/push-token", { method: "POST", body: JSON.stringify({ token }) }),
+  searchUsers: (q: string) =>
+    json<{ users: UserSearchRow[] }>(`/api/users/search?q=${encodeURIComponent(q)}`),
+  tagVisit: (visitId: number, taggedUserId: string) =>
+    json<{ ok: boolean }>(`/api/visits/${visitId}/tag`, {
+      method: "POST",
+      body: JSON.stringify({ taggedUserId }),
+    }),
+  getPendingTags: () => json<{ tags: PendingTag[] }>("/api/me/tags"),
+  respondTag: (visitId: number, accept: boolean) =>
+    json<{ ok: boolean }>("/api/me/tags/respond", {
+      method: "POST",
+      body: JSON.stringify({ visitId, accept }),
+    }),
 
   // Phase 4 — visualize
   getStats: () => json<VisualizeStats>("/api/me/stats"),

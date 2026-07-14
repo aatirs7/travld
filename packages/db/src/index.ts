@@ -47,6 +47,15 @@ export {
 } from "./queries-social";
 export { getVisualizeStats, type VisualizeStats } from "./queries-viz";
 export {
+  setPushToken,
+  searchUsers,
+  tagUser,
+  listPendingTags,
+  respondTag,
+  type UserSearchRow,
+  type PendingTag,
+} from "./queries-tags";
+export {
   getTrips,
   getUngroupedVisits,
   getTripDetail,

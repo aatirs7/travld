@@ -40,6 +40,17 @@ async function main() {
       `);
       console.log(`✓ ${u.handle}: ${u.countries.length} countries, dev-user follows`);
     }
+
+    // demo pending tag: farrukh tags dev-user in one of farrukh's visits
+    await db.execute(sql`
+      INSERT INTO visit_tags (visit_id, tagged_user_id, status)
+      SELECT v.id, 'dev-user', 'pending' FROM visits v
+      WHERE v.user_id = 'demo-farrukh'
+      ORDER BY v.id LIMIT 1
+      ON CONFLICT DO NOTHING
+    `);
+    console.log("✓ demo pending tag: farrukh → dev-user");
+
     console.log("\n✓ demo seed complete");
   } finally {
     await pool.end();

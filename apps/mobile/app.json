@@ -35,6 +35,7 @@
     "plugins": [
       "expo-router",
       "@maplibre/maplibre-react-native",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {

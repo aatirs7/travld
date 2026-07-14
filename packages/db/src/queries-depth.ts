@@ -254,22 +254,26 @@ export interface CreateVisitInput {
 export async function createVisit(
   userId: string,
   input: CreateVisitInput,
-): Promise<VisitedSummary> {
+): Promise<VisitedSummary & { visitId: number }> {
   const { db: wdb, pool } = await createPool();
+  let visitId = 0;
   try {
-    await wdb.execute(sql`
+    const res = await wdb.execute(sql`
       INSERT INTO visits (user_id, place_id, arrived_at, departed_at, purpose, note, trip_id)
       VALUES (
         ${userId}, ${input.placeId},
         ${input.arrivedAt ?? null}, ${input.departedAt ?? null},
         ${input.purpose ?? "leisure"}, ${input.note ?? null}, ${input.tripId ?? null}
       )
+      RETURNING id
     `);
+    visitId = Number((res.rows[0] as any)?.id ?? 0);
     await recomputeUserPlaceStats(wdb, userId);
   } finally {
     await pool.end();
   }
-  return getVisitedCountries(userId);
+  const summary = await getVisitedCountries(userId);
+  return { ...summary, visitId };
 }
 
 /** Toggle a direct visit on any place (region/city/country). Returns visited state. */

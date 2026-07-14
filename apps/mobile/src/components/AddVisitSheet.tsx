@@ -10,7 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { api, type SearchResult, type TripListItem } from "@/lib/api";
+import { api, type SearchResult, type TripListItem, type UserSearchRow } from "@/lib/api";
 
 const PURPOSES = ["leisure", "lived", "work", "transit", "layover"] as const;
 type Purpose = (typeof PURPOSES)[number];
@@ -34,6 +34,9 @@ export function AddVisitSheet({
   const [trips, setTrips] = useState<TripListItem[]>([]);
   const [tripId, setTripId] = useState<number | null>(null);
   const [newTripTitle, setNewTripTitle] = useState("");
+  const [tagged, setTagged] = useState<UserSearchRow[]>([]);
+  const [userQ, setUserQ] = useState("");
+  const [userResults, setUserResults] = useState<UserSearchRow[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -46,8 +49,28 @@ export function AddVisitSheet({
       setNote("");
       setTripId(null);
       setNewTripTitle("");
+      setTagged([]);
+      setUserQ("");
+      setUserResults([]);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (userQ.trim().length < 1) return setUserResults([]);
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const { users } = await api.searchUsers(userQ.trim());
+        if (!cancelled) setUserResults(users);
+      } catch {
+        /* ignore */
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [userQ]);
 
   useEffect(() => {
     if (q.trim().length < 2) return setResults([]);
@@ -73,7 +96,10 @@ export function AddVisitSheet({
     try {
       let finalTrip = tripId;
       if (newTripTitle.trim()) finalTrip = (await api.createTrip(newTripTitle.trim())).id;
-      await api.createVisit({ placeId: place.id, purpose, note: note.trim() || null, tripId: finalTrip });
+      const res = await api.createVisit({ placeId: place.id, purpose, note: note.trim() || null, tripId: finalTrip });
+      if (res.visitId && tagged.length > 0) {
+        await Promise.all(tagged.map((u) => api.tagVisit(res.visitId, u.id).catch(() => {})));
+      }
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onSaved?.();
       onClose();
@@ -82,7 +108,7 @@ export function AddVisitSheet({
     } finally {
       setSaving(false);
     }
-  }, [place, purpose, note, tripId, newTripTitle, onSaved, onClose]);
+  }, [place, purpose, note, tripId, newTripTitle, tagged, onSaved, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -158,6 +184,36 @@ export function AddVisitSheet({
                 style={styles.newTrip}
                 maxFontSizeMultiplier={1.3}
               />
+
+              <Text variant="hero" style={styles.label}>TAG PEOPLE</Text>
+              {tagged.length > 0 && (
+                <View style={styles.chips}>
+                  {tagged.map((u) => (
+                    <Pressable key={u.id} onPress={() => setTagged((t) => t.filter((x) => x.id !== u.id))} style={[styles.chip, styles.chipActive]}>
+                      <Text variant="body" style={styles.chipTextActive}>@{u.handle} ✕</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <TextInput
+                value={userQ}
+                onChangeText={setUserQ}
+                placeholder="Search people by @handle"
+                placeholderTextColor={colors.textDim}
+                style={styles.newTrip}
+                autoCapitalize="none"
+                maxFontSizeMultiplier={1.3}
+              />
+              {userResults.filter((u) => !tagged.some((t) => t.id === u.id)).map((u) => (
+                <Pressable
+                  key={u.id}
+                  onPress={() => { setTagged((t) => [...t, u]); setUserQ(""); setUserResults([]); }}
+                  style={styles.row}
+                >
+                  <Text variant="body" style={styles.rowText}>{u.displayName}</Text>
+                  <Text variant="body" style={styles.rowSub}>@{u.handle}</Text>
+                </Pressable>
+              ))}
 
               <TextInput
                 value={note}
