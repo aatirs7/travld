@@ -351,9 +351,9 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* ── floating sheet ── */}
+      {/* ── floating sheet: opens at peek so the map dominates and is draggable ── */}
       <BottomSheet
-        index={1}
+        index={0}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
         backgroundStyle={{ backgroundColor: tc.surface }}

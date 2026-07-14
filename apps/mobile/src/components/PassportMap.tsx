@@ -43,6 +43,60 @@ function countryBBoxes() {
   return m;
 }
 
+// Per-country polygon rings (paths are pure M/L/Z polygons), computed once — so
+// a tap can be hit-tested in JS instead of relying on per-<Path> onPress, which
+// steals drags and fires too eagerly. Each ring is a flat [x0,y0,x1,y1,…].
+let COUNTRY_RINGS: Map<string, number[][]> | null = null;
+function countryRings() {
+  if (COUNTRY_RINGS) return COUNTRY_RINGS;
+  const m = new Map<string, number[][]>();
+  for (const c of WORLD.countries) {
+    const rings: number[][] = [];
+    for (const sub of c.d.split("M")) {
+      if (!sub) continue;
+      const nums = sub.match(/-?\d*\.?\d+(?:e-?\d+)?/gi);
+      if (!nums || nums.length < 6) continue;
+      rings.push(nums.map(Number));
+    }
+    if (rings.length) m.set(c.iso, rings);
+  }
+  COUNTRY_RINGS = m;
+  return m;
+}
+
+/** Ray-casting even-odd test of a point against one flat [x0,y0,x1,y1,…] ring. */
+function pointInRing(x: number, y: number, r: number[]): boolean {
+  let inside = false;
+  const n = r.length / 2;
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = r[i * 2]!, yi = r[i * 2 + 1]!;
+    const xj = r[j * 2]!, yj = r[j * 2 + 1]!;
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
+/** ISO2 of the country whose polygon contains the SVG point (smallest wins),
+ *  or null if the point is in open water. */
+function hitCountry(x: number, y: number): string | null {
+  const rings = countryRings();
+  const bbox = countryBBoxes();
+  let best: string | null = null;
+  let bestArea = Infinity;
+  for (const [iso, polys] of rings) {
+    let inside = false;
+    for (const r of polys) if (pointInRing(x, y, r)) inside = !inside; // even-odd across rings (holes)
+    if (!inside) continue;
+    const b = bbox.get(iso);
+    const area = b ? (b[2] - b[0]) * (b[3] - b[1]) : Infinity;
+    if (area < bestArea) {
+      bestArea = area;
+      best = iso;
+    }
+  }
+  return best;
+}
+
 interface Props {
   /** ISO2 codes of visited countries. */
   visited: Set<string>;
@@ -92,8 +146,9 @@ export function PassportMap({
 
   // When focused on a continent, zoom the viewBox to that continent's bounds and
   // switch to "meet" so the whole continent shows (bg-colored margins stay seamless).
-  const { viewBox, preserve } = useMemo(() => {
-    if (!focus || focus.size === 0) return { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const };
+  const { viewBox, preserve, vb, slice } = useMemo(() => {
+    const full = { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const, vb: VB as number[], slice: true };
+    if (!focus || focus.size === 0) return full;
     const bb = countryBBoxes();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const iso of focus) {
@@ -104,19 +159,16 @@ export function PassportMap({
       if (b[2] > maxX) maxX = b[2];
       if (b[3] > maxY) maxY = b[3];
     }
-    if (!isFinite(minX) || maxX <= minX || maxY <= minY)
-      return { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const };
+    if (!isFinite(minX) || maxX <= minX || maxY <= minY) return full;
     const w = maxX - minX, h = maxY - minY;
     const pad = Math.max(w, h) * 0.08;
-    return {
-      viewBox: `${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`,
-      preserve: "xMidYMid meet" as const,
-    };
+    const nvb = [minX - pad, minY - pad, w + pad * 2, h + pad * 2];
+    return { viewBox: nvb.join(" "), preserve: "xMidYMid meet" as const, vb: nvb, slice: false };
   }, [focus]);
 
-  // Pinch-to-zoom + one-finger pan. A tap (no movement) still opens a country
-  // via Path onPress; pan only engages past an 8px drag threshold. Translation
-  // is clamped to the zoom bounds so the map can't be dragged into empty space.
+  // One unified gesture system: pinch to zoom, one-finger drag to pan, a clean
+  // tap opens a country (hit-tested in JS — no per-<Path> onPress), long-press
+  // opens the variant menu. Pan wins over tap, so dragging never selects.
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const tx = useSharedValue(0);
@@ -148,7 +200,7 @@ export function PassportMap({
     });
 
   const pan = Gesture.Pan()
-    .minDistance(8)
+    .minDistance(6)
     .onUpdate((e) => {
       tx.value = savedTx.value + e.translationX;
       ty.value = savedTy.value + e.translationY;
@@ -174,15 +226,42 @@ export function PassportMap({
     });
 
   // Long-press opens the map-variant menu. runOnJS so the plain callback fires
-  // on the JS thread. Composed simultaneously with pinch/pan.
+  // on the JS thread.
   const longPress = Gesture.LongPress()
     .minDuration(350)
     .onStart(() => onLongPress?.())
     .runOnJS(true);
 
+  // Convert a container-space tap to an SVG point (undo the zoom/pan transform,
+  // then the viewBox + preserveAspectRatio fit) and hit-test the country under it.
+  const resolveTap = (px: number, py: number): string | null => {
+    const w = containerW.value, h = containerH.value;
+    if (!w || !h) return null;
+    const zs = scale.value;
+    const cx = w / 2, cy = h / 2;
+    // undo transform: [translate, scale] about center
+    const lx = cx + (px - cx - tx.value) / zs;
+    const ly = cy + (py - cy - ty.value) / zs;
+    const [vx, vy, vw, vh] = vb as [number, number, number, number];
+    const s = slice ? Math.max(w / vw, h / vh) : Math.min(w / vw, h / vh);
+    const ox = (w - vw * s) / 2, oy = (h - vh * s) / 2;
+    return hitCountry(vx + (lx - ox) / s, vy + (ly - oy) / s);
+  };
+
+  const tap = Gesture.Tap()
+    .maxDistance(12)
+    .runOnJS(true)
+    .onEnd((e) => {
+      if (!onToggle) return;
+      const iso = resolveTap(e.x, e.y);
+      if (iso) onToggle(iso);
+    });
+
+  // Exclusive priority: a drag (pan) beats a hold (longPress) beats a tap, so
+  // dragging the map never opens a country. Pinch runs alongside.
   const zoomGesture = noZoom
     ? Gesture.Simultaneous(longPress)
-    : Gesture.Simultaneous(pinch, pan, longPress);
+    : Gesture.Simultaneous(pinch, Gesture.Exclusive(pan, longPress, tap));
   const zoomStyle = useAnimatedStyle(() => ({
     flex: 1,
     transform: [{ translateX: tx.value }, { translateY: ty.value }, { scale: scale.value }],
@@ -243,7 +322,6 @@ export function PassportMap({
                 fillOpacity={p.fillOpacity}
                 stroke={bg}
                 strokeWidth={0.5}
-                onPress={onToggle ? () => onToggle(p.iso) : undefined}
               />
             ))}
           </Svg>
