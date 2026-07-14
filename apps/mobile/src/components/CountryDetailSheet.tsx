@@ -132,6 +132,13 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
             }}
             showsVerticalScrollIndicator={false}
           >
+            {detail.visitCount > 0 && (
+              <Text variant="body" style={styles.revisit}>
+                You’ve been to {detail.name} {detail.visitCount}{" "}
+                {detail.visitCount === 1 ? "time" : "times"}
+                {detail.firstVisitAt ? ` · since ${detail.firstVisitAt.slice(0, 4)}` : ""}
+              </Text>
+            )}
             <View style={styles.topRow}>
               {admin1 ? (
                 <View style={styles.mapWrap}>
@@ -214,23 +221,30 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
               />
             )}
 
-            {tab === "visits" && (
-              <ListOrLoading
-                data={visits}
-                empty="No visits logged here yet."
-                render={(v) => (
-                  <View key={v.id} style={[styles.row, { minHeight: L.listRow }]}>
-                    <View style={[styles.dot, { backgroundColor: theme.visited }]} />
-                    <Text variant="body" numberOfLines={1} style={styles.rowText}>
-                      {v.placeName}
-                    </Text>
-                    <Text variant="body" style={styles.rowMeta}>
-                      {v.purpose}
-                    </Text>
+            {tab === "visits" &&
+              (visits == null ? (
+                <ActivityIndicator color={colors.mint} />
+              ) : visits.length === 0 ? (
+                <Text variant="body" style={styles.dim}>No visits logged here yet.</Text>
+              ) : (
+                groupVisitsByTrip(visits).map(([tripTitle, group]) => (
+                  <View key={tripTitle} style={{ gap: spacing.xs }}>
+                    <Text variant="hero" style={styles.tripHeader}>{tripTitle}</Text>
+                    {group.map((v) => (
+                      <View key={v.id} style={[styles.row, { minHeight: L.listRow }]}>
+                        <View style={[styles.dot, { backgroundColor: theme.visited }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text variant="body" numberOfLines={1} style={styles.rowText}>{v.placeName}</Text>
+                          {v.note ? <Text variant="body" numberOfLines={1} style={styles.rowMeta}>{v.note}</Text> : null}
+                        </View>
+                        <Text variant="body" style={styles.rowMeta}>
+                          {v.arrivedAt ? v.arrivedAt.slice(0, 10) : v.purpose}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                )}
-              />
-            )}
+                ))
+              ))}
 
             {tab === "photos" && (
               <Text variant="body" style={styles.dim}>
@@ -241,6 +255,19 @@ export function CountryDetailSheet({ iso2, onClose, onChanged }: Props) {
         )}
       </View>
     </Modal>
+  );
+}
+
+function groupVisitsByTrip(visits: VisitDetailRow[]): [string, VisitDetailRow[]][] {
+  const map = new Map<string, VisitDetailRow[]>();
+  for (const v of visits) {
+    const key = v.tripTitle ?? "No trip";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(v);
+  }
+  // "No trip" section last
+  return [...map.entries()].sort((a, b) =>
+    a[0] === "No trip" ? 1 : b[0] === "No trip" ? -1 : 0,
   );
 }
 
@@ -284,6 +311,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: 5 },
   rowText: { color: colors.textPrimary, fontSize: 16, flex: 1 },
-  rowMeta: { color: colors.textDim, fontSize: 13, textTransform: "uppercase" },
+  rowMeta: { color: colors.textDim, fontSize: 13 },
   dim: { color: colors.textDim },
+  revisit: { color: colors.mint, fontSize: 15, marginTop: spacing.xs },
+  tripHeader: { color: colors.textPrimary, fontSize: 15, fontWeight: "700", marginTop: spacing.sm },
 });

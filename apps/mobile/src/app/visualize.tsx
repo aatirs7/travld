@@ -12,6 +12,7 @@ interface Stats {
   purposes: { purpose: string; count: number }[];
   timeline: { year: number; count: number }[];
   distanceKm: number;
+  trips: { total: number; longestDays: number; mostCountries: number; perYear: { year: number; count: number }[] };
 }
 
 const PURPOSE_COLORS: Record<string, string> = {
@@ -93,6 +94,18 @@ export default function VisualizeScreen() {
             ))}
           </View>
         </View>
+
+        {/* trips */}
+        {stats.trips.total > 0 && (
+          <>
+            <Text variant="hero" style={styles.section}>Trips</Text>
+            <View style={styles.tiles}>
+              <Tile value={stats.trips.total} label="Trips" />
+              <Tile value={stats.trips.longestDays} label="Longest days" />
+              <Tile value={stats.trips.mostCountries} label="Most countries" />
+            </View>
+          </>
+        )}
 
         {/* timeline */}
         <Text variant="hero" style={styles.section}>Timeline</Text>

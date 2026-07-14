@@ -59,6 +59,9 @@ export interface CountryDetail {
   regionTotal: number;
   regionVisited: number;
   regions: RegionRow[];
+  visitCount: number;
+  firstVisitAt: string | null;
+  lastVisitAt: string | null;
 }
 
 export async function getCountryDetail(
@@ -66,8 +69,12 @@ export async function getCountryDetail(
   iso2: string,
 ): Promise<CountryDetail | null> {
   const countryRows = await db.execute(sql`
-    SELECT id, iso2, name, display_type AS "displayType"
-    FROM places WHERE level = 'country' AND iso2 = ${iso2} LIMIT 1
+    SELECT p.id, p.iso2, p.name, p.display_type AS "displayType",
+           COALESCE(s.visit_count, 0) AS "visitCount",
+           s.first_visit_at AS "firstVisitAt", s.last_visit_at AS "lastVisitAt"
+    FROM places p
+    LEFT JOIN user_place_stats s ON s.place_id = p.id AND s.user_id = ${userId}
+    WHERE p.level = 'country' AND p.iso2 = ${iso2} LIMIT 1
   `);
   const country = countryRows.rows[0] as any;
   if (!country) return null;
@@ -94,6 +101,9 @@ export async function getCountryDetail(
     regionTotal: regions.length,
     regionVisited: regions.filter((r) => r.visited).length,
     regions,
+    visitCount: Number(country.visitCount ?? 0),
+    firstVisitAt: country.firstVisitAt ? new Date(country.firstVisitAt).toISOString() : null,
+    lastVisitAt: country.lastVisitAt ? new Date(country.lastVisitAt).toISOString() : null,
   };
 }
 
@@ -149,20 +159,33 @@ export interface VisitRow {
   purpose: string;
   arrivedAt: string | null;
   note: string | null;
+  tripId: number | null;
+  tripTitle: string | null;
 }
 
 /** The user's visits within a country (any level whose country_code matches, or the country itself). */
 export async function getCountryVisits(userId: string, iso2: string): Promise<VisitRow[]> {
   const rows = await db.execute(sql`
     SELECT v.id, p.name AS "placeName", p.level AS "placeLevel",
-           v.purpose, v.arrived_at AS "arrivedAt", v.note
+           v.purpose, v.arrived_at AS "arrivedAt", v.note,
+           v.trip_id AS "tripId", tr.title AS "tripTitle"
     FROM visits v
     JOIN places p ON p.id = v.place_id
+    LEFT JOIN trips tr ON tr.id = v.trip_id
     WHERE v.user_id = ${userId}
       AND (p.country_code = ${iso2} OR (p.level = 'country' AND p.iso2 = ${iso2}))
     ORDER BY v.created_at DESC
   `);
-  return rows.rows as unknown as VisitRow[];
+  return (rows.rows as any[]).map((r) => ({
+    id: Number(r.id),
+    placeName: r.placeName,
+    placeLevel: r.placeLevel,
+    purpose: r.purpose,
+    arrivedAt: r.arrivedAt ? new Date(r.arrivedAt).toISOString() : null,
+    note: r.note ?? null,
+    tripId: r.tripId != null ? Number(r.tripId) : null,
+    tripTitle: r.tripTitle ?? null,
+  }));
 }
 
 // ─── region heatmap (admin-1s visited per country) ────────────────────────────

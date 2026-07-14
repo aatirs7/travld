@@ -55,6 +55,9 @@ export interface CountryDetail {
   regionTotal: number;
   regionVisited: number;
   regions: RegionRow[];
+  visitCount: number;
+  firstVisitAt: string | null;
+  lastVisitAt: string | null;
 }
 
 export interface CityRow {
@@ -87,6 +90,8 @@ export interface VisitDetailRow {
   purpose: string;
   arrivedAt: string | null;
   note: string | null;
+  tripId: number | null;
+  tripTitle: string | null;
 }
 
 export type RegionProgress = Record<string, { total: number; visited: number }>;
@@ -236,4 +241,10 @@ export interface VisualizeStats {
   purposes: { purpose: string; count: number }[];
   timeline: { year: number; count: number }[];
   distanceKm: number;
+  trips: {
+    total: number;
+    longestDays: number;
+    mostCountries: number;
+    perYear: { year: number; count: number }[];
+  };
 }

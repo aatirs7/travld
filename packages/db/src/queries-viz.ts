@@ -7,6 +7,12 @@ export interface VisualizeStats {
   purposes: { purpose: string; count: number }[];
   timeline: { year: number; count: number }[];
   distanceKm: number;
+  trips: {
+    total: number;
+    longestDays: number;
+    mostCountries: number;
+    perYear: { year: number; count: number }[];
+  };
 }
 
 function haversineKm(a: [number, number], b: [number, number]): number {
@@ -88,5 +94,50 @@ export async function getVisualizeStats(userId: string): Promise<VisualizeStats>
     }
   }
 
-  return { totals, continents, purposes, timeline, distanceKm: Math.round(distanceKm) };
+  // trip stats
+  const tripAggRes = await db.execute(sql`
+    WITH trip_agg AS (
+      SELECT t.id,
+        EXTRACT(YEAR FROM COALESCE(MIN(v.arrived_at), t.start_date))::int AS year,
+        (MAX(COALESCE(v.departed_at, v.arrived_at))::date - MIN(v.arrived_at)::date + 1) AS days,
+        COUNT(DISTINCT COALESCE(p.country_code, p.iso2)) AS countries
+      FROM trips t
+      LEFT JOIN visits v ON v.trip_id = t.id
+      LEFT JOIN places p ON p.id = v.place_id
+      WHERE t.user_id = ${userId}
+      GROUP BY t.id, t.start_date
+    )
+    SELECT count(*)::int AS total,
+           COALESCE(max(days), 0)::int AS "longestDays",
+           COALESCE(max(countries), 0)::int AS "mostCountries"
+    FROM trip_agg
+  `);
+  const tripAgg = (tripAggRes.rows[0] as any) ?? {};
+  const perYearRes = await db.execute(sql`
+    SELECT year, count(*)::int AS count FROM (
+      SELECT EXTRACT(YEAR FROM COALESCE(MIN(v.arrived_at), t.start_date))::int AS year
+      FROM trips t LEFT JOIN visits v ON v.trip_id = t.id
+      WHERE t.user_id = ${userId}
+      GROUP BY t.id, t.start_date
+    ) sub
+    WHERE year IS NOT NULL
+    GROUP BY year
+  `);
+  const perYear = (perYearRes.rows as any[])
+    .filter((r) => r.year != null)
+    .map((r) => ({ year: Number(r.year), count: Number(r.count) }));
+
+  return {
+    totals,
+    continents,
+    purposes,
+    timeline,
+    distanceKm: Math.round(distanceKm),
+    trips: {
+      total: Number(tripAgg.total ?? 0),
+      longestDays: Number(tripAgg.longestDays ?? 0),
+      mostCountries: Number(tripAgg.mostCountries ?? 0),
+      perYear,
+    },
+  };
 }
