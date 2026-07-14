@@ -1,9 +1,9 @@
 import { defaultMapTheme, type MapTheme } from "@travld/core";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useAppColors } from "@/lib/app-theme";
 import { type StyleProp, type ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Svg, { Path, Rect } from "react-native-svg";
 import world from "../../assets/maps/world-countries-simplified.json";
 
@@ -144,10 +144,12 @@ export function PassportMap({
   const tc = useAppColors();
   const bg = background ?? tc.bg;
 
-  // When focused on a continent, zoom the viewBox to that continent's bounds and
-  // switch to "meet" so the whole continent shows (bg-colored margins stay seamless).
-  const { viewBox, preserve, vb, slice } = useMemo(() => {
-    const full = { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const, vb: VB as number[], slice: true };
+  // Always "meet" so the WHOLE map is visible at rest (the Been passport look):
+  // the world fits to width, letterboxed top/bottom with seamless black ocean.
+  // Focus narrows the viewBox to a continent's bounds. Slice cropped the wide
+  // world to a useless vertical strip in a tall full-screen container.
+  const { viewBox, vb } = useMemo(() => {
+    const full = { viewBox: VIEWBOX, vb: VB as number[] };
     if (!focus || focus.size === 0) return full;
     const bb = countryBBoxes();
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -163,8 +165,9 @@ export function PassportMap({
     const w = maxX - minX, h = maxY - minY;
     const pad = Math.max(w, h) * 0.08;
     const nvb = [minX - pad, minY - pad, w + pad * 2, h + pad * 2];
-    return { viewBox: nvb.join(" "), preserve: "xMidYMid meet" as const, vb: nvb, slice: false };
+    return { viewBox: nvb.join(" "), vb: nvb };
   }, [focus]);
+  const preserve = "xMidYMid meet" as const;
 
   // One unified gesture system: pinch to zoom, one-finger drag to pan, a clean
   // tap opens a country (hit-tested in JS — no per-<Path> onPress), long-press
@@ -177,26 +180,38 @@ export function PassportMap({
   const savedTy = useSharedValue(0);
   const containerW = useSharedValue(0);
   const containerH = useSharedValue(0);
+  // viewBox width/height (world, or a continent when focused) — drives the clamp.
+  const vbW = useSharedValue(VB[2]!);
+  const vbH = useSharedValue(VB[3]!);
+  useEffect(() => {
+    vbW.value = vb[2]!;
+    vbH.value = vb[3]!;
+  }, [vb, vbW, vbH]);
 
-  const reset = () => {
+  // Clamp the current translation so the map never pans past its own rendered
+  // edge into empty space. Uses the actual rendered content size (viewBox fit to
+  // the container with "meet", times the zoom) — not a bogus (scale-1) guess.
+  const clampXY = () => {
     "worklet";
-    scale.value = withTiming(1);
-    savedScale.value = 1;
-    tx.value = withTiming(0);
-    ty.value = withTiming(0);
-    savedTx.value = 0;
-    savedTy.value = 0;
+    const cw = containerW.value, ch = containerH.value;
+    const vw = vbW.value, vh = vbH.value;
+    if (!cw || !ch || !vw || !vh) return;
+    const rs = Math.min(cw / vw, ch / vh); // "meet" render scale
+    const maxX = Math.max(0, (vw * rs * scale.value - cw) / 2);
+    const maxY = Math.max(0, (vh * rs * scale.value - ch) / 2);
+    tx.value = Math.min(Math.max(tx.value, -maxX), maxX);
+    ty.value = Math.min(Math.max(ty.value, -maxY), maxY);
   };
 
   const pinch = Gesture.Pinch()
     .onUpdate((e) => {
-      scale.value = Math.min(Math.max(savedScale.value * e.scale, 1), 6);
+      scale.value = Math.min(Math.max(savedScale.value * e.scale, 1), 8);
+      clampXY();
     })
     .onEnd(() => {
       savedScale.value = scale.value;
       savedTx.value = tx.value;
       savedTy.value = ty.value;
-      if (scale.value <= 1.01) reset();
     });
 
   const pan = Gesture.Pan()
@@ -204,25 +219,11 @@ export function PassportMap({
     .onUpdate((e) => {
       tx.value = savedTx.value + e.translationX;
       ty.value = savedTy.value + e.translationY;
+      clampXY();
     })
     .onEnd(() => {
-      if (scale.value <= 1.01) {
-        // not zoomed: rubber-band back so the map always rests filling the screen
-        tx.value = withTiming(0);
-        ty.value = withTiming(0);
-        savedTx.value = 0;
-        savedTy.value = 0;
-      } else {
-        // zoomed: keep the dragged position, clamped inside the zoom bounds
-        const maxX = ((scale.value - 1) * containerW.value) / 2;
-        const maxY = ((scale.value - 1) * containerH.value) / 2;
-        const cx = Math.min(Math.max(tx.value, -maxX), maxX);
-        const cy = Math.min(Math.max(ty.value, -maxY), maxY);
-        tx.value = withTiming(cx);
-        ty.value = withTiming(cy);
-        savedTx.value = cx;
-        savedTy.value = cy;
-      }
+      savedTx.value = tx.value;
+      savedTy.value = ty.value;
     });
 
   // Long-press opens the map-variant menu. runOnJS so the plain callback fires
@@ -243,7 +244,7 @@ export function PassportMap({
     const lx = cx + (px - cx - tx.value) / zs;
     const ly = cy + (py - cy - ty.value) / zs;
     const [vx, vy, vw, vh] = vb as [number, number, number, number];
-    const s = slice ? Math.max(w / vw, h / vh) : Math.min(w / vw, h / vh);
+    const s = Math.min(w / vw, h / vh); // "meet" fit
     const ox = (w - vw * s) / 2, oy = (h - vh * s) / 2;
     return hitCountry(vx + (lx - ox) / s, vy + (ly - oy) / s);
   };

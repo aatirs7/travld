@@ -275,8 +275,13 @@ export default function MapScreen() {
     <View style={styles.container}>
       <StatusBar style={mode === "light" ? "dark" : "light"} />
 
-      {/* ── full-bleed map layer ── */}
-      <View ref={mapRef} collapsable={false} style={StyleSheet.absoluteFill}>
+      {/* ── full-bleed map layer (inset above the peek sheet so the whole world
+             centers in the visible area, not behind the sheet) ── */}
+      <View
+        ref={mapRef}
+        collapsable={false}
+        style={[StyleSheet.absoluteFill, { bottom: Math.round(L.height * 0.34) }]}
+      >
         {country ? (
           <View style={styles.countryMapWrap}>
             {cAdmin1 ? (
