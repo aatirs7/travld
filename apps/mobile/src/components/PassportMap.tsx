@@ -114,14 +114,17 @@ export function PassportMap({
     };
   }, [focus]);
 
-  // Pinch-to-zoom + two-finger pan. Two fingers keeps single-tap country
-  // selection (Path onPress) and the parent pagers conflict-free.
+  // Pinch-to-zoom + one-finger pan. A tap (no movement) still opens a country
+  // via Path onPress; pan only engages past an 8px drag threshold. Translation
+  // is clamped to the zoom bounds so the map can't be dragged into empty space.
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const tx = useSharedValue(0);
   const ty = useSharedValue(0);
   const savedTx = useSharedValue(0);
   const savedTy = useSharedValue(0);
+  const containerW = useSharedValue(0);
+  const containerH = useSharedValue(0);
 
   const reset = () => {
     "worklet";
@@ -139,18 +142,35 @@ export function PassportMap({
     })
     .onEnd(() => {
       savedScale.value = scale.value;
+      savedTx.value = tx.value;
+      savedTy.value = ty.value;
       if (scale.value <= 1.01) reset();
     });
 
   const pan = Gesture.Pan()
-    .minPointers(2)
+    .minDistance(8)
     .onUpdate((e) => {
       tx.value = savedTx.value + e.translationX;
       ty.value = savedTy.value + e.translationY;
     })
     .onEnd(() => {
-      savedTx.value = tx.value;
-      savedTy.value = ty.value;
+      if (scale.value <= 1.01) {
+        // not zoomed: rubber-band back so the map always rests filling the screen
+        tx.value = withTiming(0);
+        ty.value = withTiming(0);
+        savedTx.value = 0;
+        savedTy.value = 0;
+      } else {
+        // zoomed: keep the dragged position, clamped inside the zoom bounds
+        const maxX = ((scale.value - 1) * containerW.value) / 2;
+        const maxY = ((scale.value - 1) * containerH.value) / 2;
+        const cx = Math.min(Math.max(tx.value, -maxX), maxX);
+        const cy = Math.min(Math.max(ty.value, -maxY), maxY);
+        tx.value = withTiming(cx);
+        ty.value = withTiming(cy);
+        savedTx.value = cx;
+        savedTy.value = cy;
+      }
     });
 
   // Long-press opens the map-variant menu. runOnJS so the plain callback fires
@@ -197,6 +217,10 @@ export function PassportMap({
   return (
     <GestureDetector gesture={zoomGesture}>
       <Animated.View
+        onLayout={(e) => {
+          containerW.value = e.nativeEvent.layout.width;
+          containerH.value = e.nativeEvent.layout.height;
+        }}
         style={[
           fill ? { flex: 1, overflow: "hidden" } : { width: "100%", aspectRatio: 1.55, overflow: "hidden" },
           style,
