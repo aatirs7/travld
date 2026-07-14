@@ -20,6 +20,29 @@ const WORLD = world as WorldMap;
 const VB = WORLD.viewBox ?? [0, 0, WORLD.width, WORLD.height];
 const VIEWBOX = VB.join(" ");
 
+// Per-country projected bounding boxes, computed once — used to zoom the map to
+// a focused continent (a set of iso2 codes).
+let COUNTRY_BBOX: Map<string, [number, number, number, number]> | null = null;
+function countryBBoxes() {
+  if (COUNTRY_BBOX) return COUNTRY_BBOX;
+  const m = new Map<string, [number, number, number, number]>();
+  for (const c of WORLD.countries) {
+    const nums = c.d.match(/-?\d*\.?\d+(?:e-?\d+)?/gi);
+    if (!nums) continue;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      const x = +nums[i]!, y = +nums[i + 1]!;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    if (isFinite(minX)) m.set(c.iso, [minX, minY, maxX, maxY]);
+  }
+  COUNTRY_BBOX = m;
+  return m;
+}
+
 interface Props {
   /** ISO2 codes of visited countries. */
   visited: Set<string>;
@@ -30,6 +53,8 @@ interface Props {
   variant?: "world" | "heatmap";
   /** iso2 → { total, visited } admin-1 counts, for the heatmap variant. */
   regionProgress?: Record<string, { total: number; visited: number }>;
+  /** iso2 codes to zoom/focus to (a continent). Others are dimmed. */
+  focus?: Set<string>;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -44,9 +69,34 @@ export function PassportMap({
   theme = defaultMapTheme,
   variant = "world",
   regionProgress,
+  focus,
   style,
 }: Props) {
   const tc = useAppColors();
+
+  // When focused on a continent, zoom the viewBox to that continent's bounds and
+  // switch to "meet" so the whole continent shows (bg-colored margins stay seamless).
+  const { viewBox, preserve } = useMemo(() => {
+    if (!focus || focus.size === 0) return { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const };
+    const bb = countryBBoxes();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const iso of focus) {
+      const b = bb.get(iso);
+      if (!b) continue;
+      if (b[0] < minX) minX = b[0];
+      if (b[1] < minY) minY = b[1];
+      if (b[2] > maxX) maxX = b[2];
+      if (b[3] > maxY) maxY = b[3];
+    }
+    if (!isFinite(minX) || maxX <= minX || maxY <= minY)
+      return { viewBox: VIEWBOX, preserve: "xMidYMid slice" as const };
+    const w = maxX - minX, h = maxY - minY;
+    const pad = Math.max(w, h) * 0.08;
+    return {
+      viewBox: `${minX - pad} ${minY - pad} ${w + pad * 2} ${h + pad * 2}`,
+      preserve: "xMidYMid meet" as const,
+    };
+  }, [focus]);
 
   // Pinch-to-zoom + two-finger pan. Two fingers keeps single-tap country
   // selection (Path onPress) and the parent pagers conflict-free.
@@ -109,9 +159,10 @@ export function PassportMap({
             fill = theme.land;
           }
         }
+        if (focus && focus.size > 0 && !focus.has(c.iso)) fillOpacity *= 0.28;
         return { ...c, isVisited, fill, fillOpacity };
       }),
-    [visited, variant, regionProgress, theme],
+    [visited, variant, regionProgress, theme, focus],
   );
 
   return (
@@ -121,8 +172,8 @@ export function PassportMap({
           <Svg
             width="100%"
             height="100%"
-            viewBox={VIEWBOX}
-            preserveAspectRatio="xMidYMid slice"
+            viewBox={viewBox}
+            preserveAspectRatio={preserve}
           >
             {/* water always == app background so the map is seamless */}
             <Rect x={-200} y={-200} width={WORLD.width + 400} height={WORLD.height + 400} fill={tc.bg} />

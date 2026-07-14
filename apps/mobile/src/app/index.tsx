@@ -29,10 +29,11 @@ import {
   type Admin1Map,
   type CountryDetail,
   type CountryRow,
-  type RegionProgress,
 } from "@/lib/api";
 import { getFlag, setFlag } from "@/lib/local-flags";
 import { useMapTheme } from "@/lib/map-theme-context";
+
+const CONTINENTS = ["North America", "South America", "Europe", "Africa", "Asia", "Oceania"];
 
 export default function MapScreen() {
   const [visited, setVisited] = useState<Set<string>>(new Set());
@@ -44,8 +45,7 @@ export default function MapScreen() {
   const [showMap, setShowMap] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [page, setPage] = useState(0);
-  const [regionProgress, setRegionProgress] = useState<RegionProgress | null>(null);
+  const [statPage, setStatPage] = useState(0);
   // country mode: when set, the home map becomes that country's states map
   const [country, setCountry] = useState<{ iso2: string; name: string } | null>(null);
   const [cDetail, setCDetail] = useState<CountryDetail | null>(null);
@@ -100,15 +100,11 @@ export default function MapScreen() {
     }, [loading, refreshVisited]),
   );
 
-  const onPage = useCallback(
+  const onStatPage = useCallback(
     (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const p = Math.round(e.nativeEvent.contentOffset.x / L.width);
-      setPage(p);
-      if (p === 1 && !regionProgress) {
-        api.getRegionProgress().then((r) => setRegionProgress(r.progress)).catch(() => {});
-      }
+      setStatPage(Math.round(e.nativeEvent.contentOffset.x / L.width));
     },
-    [L.width, regionProgress],
+    [L.width],
   );
 
   const handleToggle = useCallback(
@@ -170,7 +166,38 @@ export default function MapScreen() {
     }
   }, []);
 
-  const pct = percentOfWorld(unCount);
+  // Swipeable stat pages: World, then one per continent. Swiping focuses the map
+  // to that continent and shows that continent's countries-visited stats.
+  const statPages = useMemo(() => {
+    const pages = [{
+      key: "world",
+      label: "WORLD",
+      pct: percentOfWorld(unCount),
+      frac: unCount / UN_COUNTRY_DENOMINATOR,
+      visited: unCount,
+      total: UN_COUNTRY_DENOMINATOR,
+      focus: undefined as Set<string> | undefined,
+    }];
+    for (const cont of CONTINENTS) {
+      const inCont = countries.filter((c) => c.iso2 && c.continent === cont);
+      if (inCont.length === 0) continue;
+      const isoSet = new Set(inCont.map((c) => c.iso2!));
+      const total = inCont.filter((c) => c.isUnMember).length || inCont.length;
+      const vis = [...visited].filter((iso) => isoSet.has(iso)).length;
+      pages.push({
+        key: cont,
+        label: cont.toUpperCase(),
+        pct: total ? Math.round((vis / total) * 100) : 0,
+        frac: total ? vis / total : 0,
+        visited: vis,
+        total,
+        focus: isoSet,
+      });
+    }
+    return pages;
+  }, [countries, visited, unCount]);
+  const curStat = statPages[Math.min(statPage, statPages.length - 1)] ?? statPages[0]!;
+
   const visitedList = useMemo(
     () =>
       [...visited]
@@ -253,41 +280,51 @@ export default function MapScreen() {
           /* ── world mode ── */
           <>
             <View ref={cardRef} collapsable={false} style={styles.shareCard}>
-              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={onPage}>
-                <View style={{ width: L.width }}>
-                  <PassportMap
-                    visited={visited}
-                    onToggle={(iso) => openCountry(iso, nameByIso2.get(iso) ?? iso)}
-                    theme={theme}
-                    variant="world"
-                  />
-                </View>
-                <View style={{ width: L.width }}>
-                  <PassportMap visited={visited} theme={theme} variant="heatmap" regionProgress={regionProgress ?? undefined} />
-                </View>
+              <PassportMap
+                visited={visited}
+                onToggle={(iso) => openCountry(iso, nameByIso2.get(iso) ?? iso)}
+                theme={theme}
+                variant="world"
+                focus={curStat.focus}
+              />
+              <Text variant="body" style={styles.pageLabel}>{curStat.label}</Text>
+
+              {/* swipe the stat card to focus a continent */}
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={onStatPage}
+              >
+                {statPages.map((sp) => (
+                  <View key={sp.key} style={{ width: L.width }}>
+                    <View style={[styles.statCard, { marginHorizontal: L.gutter }]}>
+                      <View style={styles.statCol}>
+                        <Text variant="hero" style={styles.statBig}>{sp.pct}%</Text>
+                        <Text variant="hero" style={styles.statLabel}>{sp.label}</Text>
+                      </View>
+                      <Ring frac={sp.frac} color={theme.visited} />
+                      <View style={styles.statCol}>
+                        <Text variant="hero" style={styles.statBig}>{sp.visited}</Text>
+                        <Text variant="hero" style={styles.statLabel}>COUNTRIES</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
               </ScrollView>
 
               <View style={styles.dots}>
-                {[0, 1].map((i) => (
-                  <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
+                {statPages.map((sp, i) => (
+                  <View key={sp.key} style={[styles.dot, i === Math.min(statPage, statPages.length - 1) && styles.dotActive]} />
                 ))}
-              </View>
-              <Text variant="body" style={styles.pageLabel}>{page === 0 ? "WORLD" : "REGIONS"}</Text>
-
-              <View style={[styles.statCard, { marginHorizontal: L.gutter }]}>
-                <View style={styles.statCol}>
-                  <Text variant="hero" style={styles.statBig}>{pct}%</Text>
-                  <Text variant="hero" style={styles.statLabel}>WORLD</Text>
-                </View>
-                <Ring frac={unCount / UN_COUNTRY_DENOMINATOR} color={theme.visited} />
-                <View style={styles.statCol}>
-                  <Text variant="hero" style={styles.statBig}>{unCount}</Text>
-                  <Text variant="hero" style={styles.statLabel}>COUNTRIES</Text>
-                </View>
               </View>
             </View>
 
-            <Text variant="body" style={styles.statSub}>Out of {UN_COUNTRY_DENOMINATOR} UN countries</Text>
+            <Text variant="body" style={styles.statSub}>
+              {statPage === 0
+                ? `Out of ${UN_COUNTRY_DENOMINATOR} UN countries · swipe for continents`
+                : `${curStat.visited} of ${curStat.total} in ${curStat.label.charAt(0) + curStat.label.slice(1).toLowerCase()}`}
+            </Text>
 
             <Pressable style={styles.shareBtn} onPress={handleShare}>
               <Text variant="hero" style={styles.shareText}>Share</Text>
